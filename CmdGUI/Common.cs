@@ -127,7 +127,7 @@ class Common
 
 
                         name = name.ToLower();
-                        value = value.ToLower();
+                        //value = value.ToLower();
 
                         if (!retDic.ContainsKey(name))
                         {
@@ -140,8 +140,6 @@ class Common
         }
         catch (Exception )
         {
-            //MCommLib.MLog._common.info("{0} 解析异常：{1}", filePath, ex.ToString());
-
             return false; ;
         }
 
