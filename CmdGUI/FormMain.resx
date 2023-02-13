@@ -200,9 +200,6 @@
   <data name="textBox3.Location" type="System.Drawing.Point, System.Drawing">
     <value>14, 189</value>
   </data>
-  <data name="textBox3.MaxLength" type="System.Int32, mscorlib">
-    <value>327670</value>
-  </data>
   <data name="textBox3.Multiline" type="System.Boolean, mscorlib">
     <value>True</value>
   </data>
@@ -326,7 +323,7 @@
     <value>4</value>
   </data>
   <data name="textBox2.Text" xml:space="preserve">
-    <value>wsclient -s ws://172.247.48.145:9997 -p Poipoi123 -l 127.0.0.1:1080 -i 127.0.0.1</value>
+    <value> -s  -i 127.0.0.1</value>
   </data>
   <data name="&gt;&gt;textBox2.Name" xml:space="preserve">
     <value>textBox2</value>

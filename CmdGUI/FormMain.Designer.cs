@@ -75,6 +75,7 @@
             this.textBox3.HideSelection = false;
             resources.ApplyResources(this.textBox3, "textBox3");
             this.textBox3.Name = "textBox3";
+            this.textBox3.ReadOnly = true;
             // 
             // notifyIcon1
             // 
@@ -150,7 +151,6 @@
             // 
             // FormMain
             // 
-            this.AllowDrop = true;
             resources.ApplyResources(this, "$this");
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.Controls.Add(this.button4);
@@ -166,7 +166,7 @@
             this.Name = "FormMain";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.FormMain_FormClosing);
             this.FormClosed += new System.Windows.Forms.FormClosedEventHandler(this.FormMain_FormClosed);
-            this.DragDrop += new System.Windows.Forms.DragEventHandler(this.FormMain_DragDrop);
+            //this.DragDrop += new System.Windows.Forms.DragEventHandler(this.FormMain_DragDrop);
             this.contextMenuStrip1.ResumeLayout(false);
             this.ResumeLayout(false);
             this.PerformLayout();

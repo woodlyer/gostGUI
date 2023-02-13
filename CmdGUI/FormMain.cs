@@ -74,6 +74,7 @@ namespace CmdGUI
 
             saveConfigToFile();
 
+            p = null;
             p = new Process();
             // 自定义shell
             p.StartInfo.UseShellExecute = false;
@@ -123,15 +124,18 @@ namespace CmdGUI
 
         void stop()
         {
-
+            if (p == null)
+                return;
             try
             {
                 p.Kill();
                 p.Close();
+                p.Dispose();
             }
             catch (Exception)
             {
             }
+            p = null;
         }
 
         private void p_Exit(object sender, System.EventArgs e)
@@ -184,7 +188,10 @@ namespace CmdGUI
             }
             else
             {
-                textBox3.Text += msg;
+                textBox3.AppendText(msg);
+                if (textBox3.Text.Length > textBox3.MaxLength)
+                    textBox3.Clear();
+
                 textBox3.SelectionStart = textBox3.Text.Length - 1;
                 textBox3.ScrollToCaret();
             }
@@ -205,26 +212,10 @@ namespace CmdGUI
         private void FormMain_FormClosed(object sender, FormClosedEventArgs e)
         {
             stop();
-            //p.Kill();
-            //p.Close();
-
-            //try
-            //{
-            //    // 获得指定进程
-            //    Process[] p = Process.GetProcessesByName("brook_windows_amd64.exe");
-            //    // 杀死该进程
-            //    p[0].Kill(); 
-            //    MessageBox.Show("进程关闭成功！");
-            //}
-            //catch
-            //{
-            //    MessageBox.Show("无法关闭此进程！");
-            //}
         }
 
         private void FormMain_FormClosing(object sender, FormClosingEventArgs e)
         {
-            // 当用户点击窗体右上角X按钮或(Alt+F4)时发生         
             if (e.CloseReason == CloseReason.UserClosing)
             {
                 e.Cancel = true;
@@ -275,11 +266,11 @@ namespace CmdGUI
                 e.Effect = DragDropEffects.None;
         }
 
-        private void FormMain_DragDrop(object sender, DragEventArgs e)
-        {
-            string path = ((System.Array)e.Data.GetData(DataFormats.FileDrop)).GetValue(0).ToString();       //获得路径
-            textBox1.Text = path;
-        }
+        //private void FormMain_DragDrop(object sender, DragEventArgs e)
+        //{
+        //    string path = ((System.Array)e.Data.GetData(DataFormats.FileDrop)).GetValue(0).ToString();       //获得路径
+        //    textBox1.Text = path;
+        //}
 
         private void button3_Click(object sender, EventArgs e)
         {
