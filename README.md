@@ -1,4 +1,4 @@
-# cmdGUI
+# gostGUI
 A gui tool to run terminal program on Windows.  
 No need to install the program as service.   
 Just  run silently at background.
@@ -16,7 +16,7 @@ Just  run silently at background.
 ![screen](./screen.png)
 
 ### How to use
-- place the .exe file with cmdGUI
+- place the .exe file with gostGUI
 - select program and type args in textbox
 - press start button.  
 
