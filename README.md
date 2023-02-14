@@ -1,5 +1,5 @@
 # gostGUI
-A gui tool to run terminal program on Windows.  
+A gui tool to run terminal program(for example gost.exe) on Windows.  
 No need to install the program as service.   
 Just  run silently at background.
 
