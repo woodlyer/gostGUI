@@ -9,7 +9,7 @@ using System.Linq;
 using System.Text;
 using System.Windows.Forms;
 
-namespace CmdGUI
+namespace gostGUI
 {
     public partial class FormMain : Form
     {

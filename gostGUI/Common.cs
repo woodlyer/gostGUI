@@ -140,7 +140,7 @@ class Common
         }
         catch (Exception )
         {
-            return false; ;
+            return false;
         }
 
     }
