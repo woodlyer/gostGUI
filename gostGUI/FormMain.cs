@@ -97,7 +97,7 @@ namespace gostGUI
             p.Exited += new EventHandler(p_Exit);
 
             // 界面按钮互锁
-            button2.Enabled = false;
+            buttonStop.Enabled = false;
 
             p.StartInfo.FileName = textBox1.Text;
             p.StartInfo.Arguments = textBox2.Text;
@@ -113,7 +113,7 @@ namespace gostGUI
                 p.BeginErrorReadLine();
                 // 界面按钮互锁
                 button1.Enabled = false;
-                button2.Enabled = true;
+                buttonStop.Enabled = true;
             }
             else
             {
@@ -249,7 +249,7 @@ namespace gostGUI
                 stop();
             }
             button1.Enabled = true;
-            button2.Enabled = false;
+            buttonStop.Enabled = false;
         }
 
         private void textBox1_DragDrop(object sender, DragEventArgs e)
@@ -321,5 +321,7 @@ namespace gostGUI
             // 整个程序退出
             Application.Exit();
         }
+
+ 
     }
 }
