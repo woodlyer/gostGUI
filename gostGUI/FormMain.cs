@@ -1,52 +1,76 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
-using System.Linq;
-using System.Text;
 using System.Windows.Forms;
 
 namespace gostGUI
 {
     public partial class FormMain : Form
     {
-
         Process p;
-        //StreamWriter input;
-
         bool startOK = false;
+
+        Dictionary<string, string> cfgDic;
+        
+        // for listbox edit
+        TextBox txtEdit = new TextBox();
 
         public FormMain()
         {
             InitializeComponent();
             initFromConfig();
             Application.ApplicationExit += new EventHandler(this.OnApplicationExit);
+
+            txtEdit.KeyDown += new KeyEventHandler(txtEdit_KeyDown);
         }
         void initFromConfig()
         {
             //string exeDirPath = System.IO.Path.GetDirectoryName(Common.GetApplicationPath());
             string exeDirPath = (Common.GetApplicationPath());
             string path = exeDirPath + "/cmd.conf";
-            Dictionary<string, string> cfgDic;
+
             Common.loadIni(path, out cfgDic);
             if (cfgDic.ContainsKey("program"))
                 textBox1.Text = cfgDic["program"];
             else
                 textBox1.Text = "gost.exe";
 
-            if (cfgDic.ContainsKey("args"))
-                textBox2.Text = cfgDic["args"];
-            else
-                textBox2.Text = "-L 127.0.0.1:1080 ";
+            listBox1.Items.Clear();
+            foreach (var cfg in cfgDic)
+            {
+                if (cfg.Key == "program")
+                    continue;
+                listBox1.Items.Add(cfg.Key);
+            }
+            //if (cfgDic.ContainsKey("args"))
+            //    textBox_Arg.Text = cfgDic["args"];
+            //else
+            //    textBox_Arg.Text = "-L 127.0.0.1:1080 ";
         }
 
-        void saveConfigToFile()
+        bool changeCfgKey(string oldKey, string newKey)
+        {
+            if (cfgDic.ContainsKey(newKey) || !cfgDic.ContainsKey(oldKey))
+                return false;
+            string argStr = cfgDic[oldKey];
+            cfgDic.Remove(oldKey);
+            cfgDic.Add(newKey, argStr);
+            
+            return true;
+        }   
+        void saveCfgToFile()
         {
             string cfgStr = "program=" + textBox1.Text + Environment.NewLine;
-            cfgStr += "args=" + textBox2.Text + Environment.NewLine;
+
+            foreach (var cfg in cfgDic)
+            {
+                if (cfg.Key == "program")
+                    continue;
+
+                cfgStr += cfg.Key +"=" + cfg.Value + Environment.NewLine;
+            }
             string cfgFile = Common.GetApplicationPath() + "/cmd.conf";
             Common.SaveToFile(System.Text.Encoding.ASCII.GetBytes(cfgStr), cfgFile);
         }
@@ -59,7 +83,7 @@ namespace gostGUI
         void start()
         {
             string exeFilePath = textBox1.Text;
-            string argsstr = textBox2.Text;
+            string argsstr = textBox_Arg.Text;
 
             if (!File.Exists(exeFilePath))
             {
@@ -72,8 +96,9 @@ namespace gostGUI
                 return;
             }
 
-            saveConfigToFile();
+            saveCfgToFile();
 
+            stop();
             p = null;
             p = new Process();
             // 自定义shell
@@ -97,10 +122,10 @@ namespace gostGUI
             p.Exited += new EventHandler(p_Exit);
 
             // 界面按钮互锁
-            button2.Enabled = false;
+            button_stop.Enabled = false;
 
             p.StartInfo.FileName = textBox1.Text;
-            p.StartInfo.Arguments = textBox2.Text;
+            p.StartInfo.Arguments = textBox_Arg.Text;
 
             startOK = p.Start();
             if (startOK)
@@ -112,8 +137,9 @@ namespace gostGUI
                 p.BeginOutputReadLine();
                 p.BeginErrorReadLine();
                 // 界面按钮互锁
-                button1.Enabled = false;
-                button2.Enabled = true;
+                button_start.Enabled = false;
+                button_stop.Enabled = true;
+                listBox1.Enabled = false;
             }
             else
             {
@@ -131,11 +157,14 @@ namespace gostGUI
                 p.Kill();
                 p.Close();
                 p.Dispose();
+               
             }
-            catch (Exception)
+            catch (Exception e)
             {
+                update(e.Message);
             }
             p = null;
+            outputAdd("stop program !!!");
         }
 
         private void p_Exit(object sender, System.EventArgs e)
@@ -161,7 +190,8 @@ namespace gostGUI
             }
             else
             {
-                button1.Enabled = true;
+                button_start.Enabled = true;
+                
             }
         }
 
@@ -188,25 +218,25 @@ namespace gostGUI
             }
             else
             {
-                textBox3.AppendText(msg);
-                if (textBox3.Text.Length > textBox3.MaxLength)
-                    textBox3.Clear();
+                textBox_log.AppendText(msg);
+                if (textBox_log.Text.Length > textBox_log.MaxLength)
+                    textBox_log.Clear();
 
-                textBox3.SelectionStart = textBox3.Text.Length - 1;
-                textBox3.ScrollToCaret();
+                textBox_log.SelectionStart = textBox_log.Text.Length - 1;
+                textBox_log.ScrollToCaret();
             }
         }
 
         // start
-        private void button1_Click(object sender, EventArgs e)
+        private void buttonStart_Click(object sender, EventArgs e)
         {
             start();
         }
 
         private void outputAdd(string str)
         {
-            textBox3.AppendText(str);
-            textBox3.AppendText(Environment.NewLine);
+            textBox_log.AppendText(str);
+            textBox_log.AppendText(Environment.NewLine);
         }
 
         private void FormMain_FormClosed(object sender, FormClosedEventArgs e)
@@ -242,14 +272,16 @@ namespace gostGUI
 
 
         //stop 
-        private void button2_Click(object sender, EventArgs e)
+        private void buttonStop_Click(object sender, EventArgs e)
         {
             if (startOK)
             {
                 stop();
             }
-            button1.Enabled = true;
-            button2.Enabled = false;
+            button_start.Enabled = true;
+            button_stop.Enabled = false;
+            listBox1.Enabled = true;
+            
         }
 
         private void textBox1_DragDrop(object sender, DragEventArgs e)
@@ -297,7 +329,7 @@ namespace gostGUI
 
         private void clearButton_Click(object sender, EventArgs e)
         {
-            textBox3.Clear();
+            textBox_log.Clear();
         }
 
         private void startToolStripMenuItem_Click(object sender, EventArgs e)
@@ -320,6 +352,118 @@ namespace gostGUI
             notifyIcon1.Dispose();
             // 整个程序退出
             Application.Exit();
+        }
+
+        private void txtEdit_KeyDown(object sender, KeyEventArgs e)
+        {
+            //Enter键 更新项并隐藏编辑框   
+            if (e.KeyCode == Keys.Enter)
+            {
+                string oldText = listBox1.Items[listBox1.SelectedIndex].ToString();
+                string newText = txtEdit.Text;
+
+                bool ret = changeCfgKey(oldText, newText);
+                if (ret)
+                {
+                    listBox1.Items[listBox1.SelectedIndex] = txtEdit.Text;
+                    txtEdit.Visible = false;
+                }
+                else
+                    MessageBox.Show("key is the same. Please check it!");
+                
+            }
+            //Esc键 直接隐藏编辑框   
+            if (e.KeyCode == Keys.Escape)
+                txtEdit.Visible = false;
+
+        }
+        private void listBox1_DrawItem(object sender, DrawItemEventArgs e)
+        {
+            e.DrawBackground();
+            e.DrawFocusRectangle();
+            e.Graphics.DrawString(listBox1.Items[e.Index].ToString(), e.Font, new SolidBrush(e.ForeColor), e.Bounds);
+        }
+
+        private void listBox1_DoubleClick(object sender, EventArgs e)
+        {
+            int itemSelected = listBox1.SelectedIndex;
+            string itemText = listBox1.Items[itemSelected].ToString();
+
+            Rectangle rect = listBox1.GetItemRectangle(itemSelected);
+            txtEdit.Parent = listBox1;
+            rect.Height += 5;
+            txtEdit.Bounds = rect;
+
+            txtEdit.Multiline = true;
+            txtEdit.Visible = true;
+            txtEdit.Text = itemText;
+            txtEdit.Focus();
+            txtEdit.SelectAll();
+        }
+
+        private void listBox1_MouseClick(object sender, MouseEventArgs e)
+        {
+            txtEdit.Visible = false;
+        }
+
+
+        private void selectToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            //MessageBox.Show("Active");
+        }
+
+        private void editToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            //MessageBox.Show("Edit");
+        }
+        private void newToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            //MessageBox.Show("New");
+            cfgDic["newArg"] = "";
+            saveCfgToFile();
+            listBox1.Items.Add("newArg");//result in selected change
+        }
+
+
+        private void deleteToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            int itemSelected = listBox1.SelectedIndex;
+            string itemText = listBox1.Items[itemSelected].ToString();
+            cfgDic.Remove(itemText);
+            saveCfgToFile();
+            listBox1.Items.Remove(itemText);
+        }
+
+        private void listBox1_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            int itemSelected = listBox1.SelectedIndex;
+            if (itemSelected < 0)
+            {
+                itemSelected = 0;
+                this.listBox1.SelectedValue = 0;
+            }
+            string itemText = listBox1.Items[itemSelected].ToString();
+            string argStr = "";
+            bool ret = getArg(itemText, out argStr);
+            if (!ret)
+                return;
+            
+            textBox_Arg.Text = argStr;
+        }
+
+        bool getArg(string key, out string value)
+        {
+            value = "";
+            if (!cfgDic.ContainsKey(key) )
+                return false;
+            else
+                value = cfgDic[key];
+            return true;
+        }
+
+        private void FormMain_Load(object sender, EventArgs e)
+        {
+            listBox1.SelectedIndex = 0;
         }
     }
 }
