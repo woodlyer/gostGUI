@@ -139,7 +139,7 @@ namespace gostGUI
                 // 界面按钮互锁
                 button_start.Enabled = false;
                 button_stop.Enabled = true;
-                listBox1.Enabled = false;
+                //listBox1.Enabled = false;
             }
             else
             {
@@ -152,6 +152,12 @@ namespace gostGUI
         {
             if (p == null)
                 return;
+            if (p.HasExited)
+            {
+                outputAdd("program is not running.");
+                return;
+            }
+
             try
             {
                 p.Kill();
@@ -164,7 +170,7 @@ namespace gostGUI
                 update(e.Message);
             }
             p = null;
-            outputAdd("stop program !!!");
+            outputAdd("!!! stop program !!!");
         }
 
         private void p_Exit(object sender, System.EventArgs e)
@@ -280,7 +286,7 @@ namespace gostGUI
             }
             button_start.Enabled = true;
             button_stop.Enabled = false;
-            listBox1.Enabled = true;
+            //listBox1.Enabled = true;
             
         }
 
@@ -414,7 +420,7 @@ namespace gostGUI
 
         private void editToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            //MessageBox.Show("Edit");
+            listBox1_DoubleClick(sender, e);
         }
         private void newToolStripMenuItem_Click(object sender, EventArgs e)
         {
@@ -464,6 +470,25 @@ namespace gostGUI
         private void FormMain_Load(object sender, EventArgs e)
         {
             listBox1.SelectedIndex = 0;
+        }
+
+
+        private void textBox_Arg_KeyDown(object sender, KeyEventArgs e)
+        {
+             string newText = textBox_Arg.Text;
+            int itemSelected = listBox1.SelectedIndex;
+            if (itemSelected < 0)
+            {
+                return;
+            }
+            string itemText = listBox1.Items[itemSelected].ToString();
+            cfgDic[itemText] = newText;
+            saveCfgToFile();
+        }
+
+        private void button_Exit_Click(object sender, EventArgs e)
+        {
+            exitToolStripMenuItem_Click(sender, e);
         }
     }
 }

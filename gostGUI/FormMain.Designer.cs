@@ -48,6 +48,7 @@
             this.backgroundWorker1 = new System.ComponentModel.BackgroundWorker();
             this.groupBox1 = new System.Windows.Forms.GroupBox();
             this.groupBox2 = new System.Windows.Forms.GroupBox();
+            this.button_Exit = new System.Windows.Forms.Button();
             this.listBox1 = new System.Windows.Forms.ListBox();
             this.contextMenuStrip_listbox = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.activeToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -130,6 +131,7 @@
             this.textBox_Arg.AllowDrop = true;
             resources.ApplyResources(this.textBox_Arg, "textBox_Arg");
             this.textBox_Arg.Name = "textBox_Arg";
+            this.textBox_Arg.KeyDown += new System.Windows.Forms.KeyEventHandler(this.textBox_Arg_KeyDown);
             // 
             // label2
             // 
@@ -178,10 +180,18 @@
             // 
             // groupBox2
             // 
+            this.groupBox2.Controls.Add(this.button_Exit);
             this.groupBox2.Controls.Add(this.listBox1);
             resources.ApplyResources(this.groupBox2, "groupBox2");
             this.groupBox2.Name = "groupBox2";
             this.groupBox2.TabStop = false;
+            // 
+            // button_Exit
+            // 
+            resources.ApplyResources(this.button_Exit, "button_Exit");
+            this.button_Exit.Name = "button_Exit";
+            this.button_Exit.UseVisualStyleBackColor = true;
+            this.button_Exit.Click += new System.EventHandler(this.button_Exit_Click);
             // 
             // listBox1
             // 
@@ -291,6 +301,7 @@
         private System.Windows.Forms.ToolStripMenuItem editToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem newToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem deleteToolStripMenuItem;
+        private System.Windows.Forms.Button button_Exit;
     }
 }
 

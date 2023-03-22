@@ -21,8 +21,9 @@ class Common
             using (FileStream fs = new FileStream(fileName, FileMode.OpenOrCreate))
             {
                 using (BinaryWriter bw = new BinaryWriter(fs))
-                {
+                {   
                     bw.Write(dataBuf);
+                    fs.SetLength(dataBuf.Length);
                     return true;
                 }
             }
