@@ -287,8 +287,15 @@ namespace gostGUI
 
         private void outputAdd(string str)
         {
-            textBox_log.AppendText(str);
-            textBox_log.AppendText(Environment.NewLine);
+            try
+            {
+                textBox_log.AppendText(str);
+                textBox_log.AppendText(Environment.NewLine);
+            }
+            catch(Exception e) {
+                // do nothing
+                ;
+            }
         }
 
         private void FormMain_FormClosed(object sender, FormClosedEventArgs e)
@@ -333,7 +340,6 @@ namespace gostGUI
             button_start.Enabled = true;
             button_stop.Enabled = false;
             //listBox1.Enabled = true;
-            
         }
 
         private void textBox1_DragDrop(object sender, DragEventArgs e)
@@ -518,7 +524,7 @@ namespace gostGUI
 
         private void FormMain_Load(object sender, EventArgs e)
         {
-            listBox1.SelectedIndex = 0;
+            //listBox1.SelectedIndex = 0;
         }
 
 
@@ -545,8 +551,11 @@ namespace gostGUI
         {
             RegistryKey rkApp = Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true);
 
-            String value = rkApp.GetValue("gostGUI").ToString();
-            //String value = "";
+            Object obj = rkApp.GetValue("gostGUI");
+            if (obj == null)
+                return;
+
+            String value = obj.ToString();
             if (value == null)
             {
                 checkBox1_autostart.Checked = false;
