@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Windows.Forms;
+using Microsoft.Win32;
 
 namespace gostGUI
 {
@@ -11,6 +12,7 @@ namespace gostGUI
     {
         Process p;
         bool startOK = false;
+
 
         Dictionary<string, string> cfgDic;
         
@@ -21,9 +23,26 @@ namespace gostGUI
         {
             InitializeComponent();
             initFromConfig();
+            checkAutoStartStatus();
+
             Application.ApplicationExit += new EventHandler(this.OnApplicationExit);
 
             txtEdit.KeyDown += new KeyEventHandler(txtEdit_KeyDown);
+			// init前面已经把选项放到listBox1里面了
+			int index=0;
+            foreach (string s in listBox1.Items)
+			{
+				if( s == getCfgVal("lastItem"))
+				{
+					listBox1.SelectedIndex = index;
+					start();
+					break;
+				}
+				index++;
+			}
+
+			
+
         }
         void initFromConfig()
         {
@@ -37,11 +56,20 @@ namespace gostGUI
             else
                 textBox1.Text = "gost.exe";
 
+           
+
+            //if (cfgDic.ContainsKey("lastStatus"))
+            //    lastStatus = cfgDic["lastStatus"];
+
+
             listBox1.Items.Clear();
             foreach (var cfg in cfgDic)
             {
                 if (cfg.Key == "program")
                     continue;
+                if (cfg.Key == "lastItem")
+                    continue;
+
                 listBox1.Items.Add(cfg.Key);
             }
             //if (cfgDic.ContainsKey("args"))
@@ -50,7 +78,7 @@ namespace gostGUI
             //    textBox_Arg.Text = "-L 127.0.0.1:1080 ";
         }
 
-        bool changeCfgKey(string oldKey, string newKey)
+        bool changeCfgKey2NewKey(string oldKey, string newKey)
         {
             if (cfgDic.ContainsKey(newKey) || !cfgDic.ContainsKey(oldKey))
                 return false;
@@ -59,10 +87,20 @@ namespace gostGUI
             cfgDic.Add(newKey, argStr);
             
             return true;
-        }   
+        }
+        string getCfgVal(string key)
+        {
+            if (cfgDic.ContainsKey(key))
+                return cfgDic[key];
+            else
+                return "";
+        }
         void saveCfgToFile()
         {
             string cfgStr = "program=" + textBox1.Text + Environment.NewLine;
+
+            //cfgStr += "lastItem=" + lastItem + Environment.NewLine;
+
 
             foreach (var cfg in cfgDic)
             {
@@ -82,6 +120,9 @@ namespace gostGUI
 
         void start()
         {
+            saveCfgToFile();
+
+
             string exeFilePath = textBox1.Text;
             string argsstr = textBox_Arg.Text;
 
@@ -96,7 +137,6 @@ namespace gostGUI
                 return;
             }
 
-            saveCfgToFile();
 
             stop();
             p = null;
@@ -236,6 +276,12 @@ namespace gostGUI
         // start
         private void buttonStart_Click(object sender, EventArgs e)
         {
+			// set lastItem
+			String currentItem = listBox1.Items[listBox1.SelectedIndex].ToString();
+			if(currentItem != "")
+                cfgDic["lastItem"] = currentItem;
+			
+			
             start();
         }
 
@@ -294,6 +340,8 @@ namespace gostGUI
         {
             string path = ((System.Array)e.Data.GetData(DataFormats.FileDrop)).GetValue(0).ToString();       //获得路径
             textBox1.Text = path;
+            cfgDic["program"] = path;
+            saveCfgToFile();
         }
 
         private void textBox1_DragEnter(object sender, DragEventArgs e)
@@ -368,7 +416,7 @@ namespace gostGUI
                 string oldText = listBox1.Items[listBox1.SelectedIndex].ToString();
                 string newText = txtEdit.Text;
 
-                bool ret = changeCfgKey(oldText, newText);
+                bool ret = changeCfgKey2NewKey(oldText, newText);
                 if (ret)
                 {
                     listBox1.Items[listBox1.SelectedIndex] = txtEdit.Text;
@@ -445,8 +493,9 @@ namespace gostGUI
             int itemSelected = listBox1.SelectedIndex;
             if (itemSelected < 0)
             {
-                itemSelected = 0;
-                this.listBox1.SelectedValue = 0;
+                return;
+                //itemSelected = 0;
+                //this.listBox1.SelectedValue = 0;
             }
             string itemText = listBox1.Items[itemSelected].ToString();
             string argStr = "";
@@ -475,7 +524,7 @@ namespace gostGUI
 
         private void textBox_Arg_KeyDown(object sender, KeyEventArgs e)
         {
-             string newText = textBox_Arg.Text;
+            string newText = textBox_Arg.Text;
             int itemSelected = listBox1.SelectedIndex;
             if (itemSelected < 0)
             {
@@ -489,6 +538,43 @@ namespace gostGUI
         private void button_Exit_Click(object sender, EventArgs e)
         {
             exitToolStripMenuItem_Click(sender, e);
+        }
+
+
+        private void checkAutoStartStatus()
+        {
+            RegistryKey rkApp = Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true);
+
+            String value = rkApp.GetValue("gostGUI").ToString();
+            //String value = "";
+            if (value == null)
+            {
+                checkBox1_autostart.Checked = false;
+                return;
+            }
+
+            if (value == Application.ExecutablePath.ToString())
+            {
+                checkBox1_autostart.Checked = true;
+            }
+
+        }
+  
+        private void checkBox1_autostart_Click(object sender, EventArgs e)
+        {
+            RegistryKey rkApp = Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true);
+
+            if (checkBox1_autostart.Checked)
+            {
+                rkApp.SetValue("gostGUI", Application.ExecutablePath.ToString());
+                MessageBox.Show("active auto start sucess.");
+            }
+            else
+            {
+                // no auto start
+                rkApp.DeleteValue("gostGUI", false);
+                MessageBox.Show("disable auto start.");
+            }
         }
     }
 }

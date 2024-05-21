@@ -48,6 +48,7 @@
             this.backgroundWorker1 = new System.ComponentModel.BackgroundWorker();
             this.groupBox1 = new System.Windows.Forms.GroupBox();
             this.groupBox2 = new System.Windows.Forms.GroupBox();
+            this.checkBox1_autostart = new System.Windows.Forms.CheckBox();
             this.button_Exit = new System.Windows.Forms.Button();
             this.listBox1 = new System.Windows.Forms.ListBox();
             this.contextMenuStrip_listbox = new System.Windows.Forms.ContextMenuStrip(this.components);
@@ -180,11 +181,19 @@
             // 
             // groupBox2
             // 
+            this.groupBox2.Controls.Add(this.checkBox1_autostart);
             this.groupBox2.Controls.Add(this.button_Exit);
             this.groupBox2.Controls.Add(this.listBox1);
             resources.ApplyResources(this.groupBox2, "groupBox2");
             this.groupBox2.Name = "groupBox2";
             this.groupBox2.TabStop = false;
+            // 
+            // checkBox1_autostart
+            // 
+            resources.ApplyResources(this.checkBox1_autostart, "checkBox1_autostart");
+            this.checkBox1_autostart.Name = "checkBox1_autostart";
+            this.checkBox1_autostart.UseVisualStyleBackColor = true;
+            this.checkBox1_autostart.Click += new System.EventHandler(this.checkBox1_autostart_Click);
             // 
             // button_Exit
             // 
@@ -267,6 +276,7 @@
             this.groupBox1.ResumeLayout(false);
             this.groupBox1.PerformLayout();
             this.groupBox2.ResumeLayout(false);
+            this.groupBox2.PerformLayout();
             this.contextMenuStrip_listbox.ResumeLayout(false);
             this.groupBox3.ResumeLayout(false);
             this.groupBox3.PerformLayout();
@@ -302,6 +312,7 @@
         private System.Windows.Forms.ToolStripMenuItem newToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem deleteToolStripMenuItem;
         private System.Windows.Forms.Button button_Exit;
+        private System.Windows.Forms.CheckBox checkBox1_autostart;
     }
 }
 

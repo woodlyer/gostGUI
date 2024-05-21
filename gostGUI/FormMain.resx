@@ -493,11 +493,38 @@
   <data name="&gt;&gt;groupBox1.ZOrder" xml:space="preserve">
     <value>4</value>
   </data>
+  <data name="checkBox1_autostart.AutoSize" type="System.Boolean, mscorlib">
+    <value>True</value>
+  </data>
+  <data name="checkBox1_autostart.Location" type="System.Drawing.Point, System.Drawing">
+    <value>29, 531</value>
+  </data>
+  <data name="checkBox1_autostart.Size" type="System.Drawing.Size, System.Drawing">
+    <value>78, 16</value>
+  </data>
+  <data name="checkBox1_autostart.TabIndex" type="System.Int32, mscorlib">
+    <value>2</value>
+  </data>
+  <data name="checkBox1_autostart.Text" xml:space="preserve">
+    <value>AutoStart</value>
+  </data>
+  <data name="&gt;&gt;checkBox1_autostart.Name" xml:space="preserve">
+    <value>checkBox1_autostart</value>
+  </data>
+  <data name="&gt;&gt;checkBox1_autostart.Type" xml:space="preserve">
+    <value>System.Windows.Forms.CheckBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;checkBox1_autostart.Parent" xml:space="preserve">
+    <value>groupBox2</value>
+  </data>
+  <data name="&gt;&gt;checkBox1_autostart.ZOrder" xml:space="preserve">
+    <value>0</value>
+  </data>
   <data name="button_Exit.Location" type="System.Drawing.Point, System.Drawing">
-    <value>22, 567</value>
+    <value>6, 568</value>
   </data>
   <data name="button_Exit.Size" type="System.Drawing.Size, System.Drawing">
-    <value>95, 43</value>
+    <value>131, 43</value>
   </data>
   <data name="button_Exit.TabIndex" type="System.Int32, mscorlib">
     <value>1</value>
@@ -515,7 +542,7 @@
     <value>groupBox2</value>
   </data>
   <data name="&gt;&gt;button_Exit.ZOrder" xml:space="preserve">
-    <value>0</value>
+    <value>1</value>
   </data>
   <metadata name="contextMenuStrip_listbox.TrayLocation" type="System.Drawing.Point, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
     <value>474, 17</value>
@@ -569,7 +596,7 @@
     <value>6, 17</value>
   </data>
   <data name="listBox1.Size" type="System.Drawing.Size, System.Drawing">
-    <value>131, 544</value>
+    <value>131, 496</value>
   </data>
   <data name="listBox1.TabIndex" type="System.Int32, mscorlib">
     <value>0</value>
@@ -584,7 +611,7 @@
     <value>groupBox2</value>
   </data>
   <data name="&gt;&gt;listBox1.ZOrder" xml:space="preserve">
-    <value>1</value>
+    <value>2</value>
   </data>
   <data name="groupBox2.Location" type="System.Drawing.Point, System.Drawing">
     <value>12, 5</value>

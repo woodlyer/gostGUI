@@ -127,7 +127,7 @@ class Common
                             continue;
 
 
-                        name = name.ToLower();
+                        //name = name.ToLower();
                         //value = value.ToLower();
 
                         if (!retDic.ContainsKey(name))
