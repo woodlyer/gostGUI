@@ -129,11 +129,12 @@ namespace gostGUI
             if (!File.Exists(exeFilePath))
             {
                 //  MessageBox.(fie.FileName);
-                DialogResult diagorel = MessageBox.Show(this,
-                    "Please inpult right exe path, Program file does not exist!",
-                    "File does not exist!",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Warning);
+                //DialogResult diagorel = MessageBox.Show(this,
+                //    "Please inpult right exe path, Program file does not exist!",
+                //    "File does not exist!",
+                //    MessageBoxButtons.OK,
+                //    MessageBoxIcon.Warning);
+                outputAdd("!!! Program file does not exist !!!");
                 return;
             }
 
@@ -292,7 +293,7 @@ namespace gostGUI
                 textBox_log.AppendText(str);
                 textBox_log.AppendText(Environment.NewLine);
             }
-            catch(Exception e) {
+            catch(Exception) {
                 // do nothing
                 ;
             }
