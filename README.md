@@ -21,3 +21,12 @@ Just  run silently at background.
 - press start button.  
 
 
+
+### Change log
+- v01  support multi args
+- v1.2 add auto start function.
+
+
+
+
+
