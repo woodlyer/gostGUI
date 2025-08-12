@@ -5,7 +5,6 @@ using System.Drawing;
 using System.IO;
 using System.Windows.Forms;
 using Microsoft.Win32;
-
 namespace gostGUI
 {
     public partial class FormMain : Form
@@ -15,7 +14,10 @@ namespace gostGUI
 
 
         Dictionary<string, string> cfgDic;
-        
+        ConfigData configData;
+        private Dictionary<string, Process> processes = new Dictionary<string, Process>();
+        private Dictionary<string, TextBox> textBoxLogs = new Dictionary<string, TextBox>();
+
         // for listbox edit
         TextBox txtEdit = new TextBox();
 
@@ -29,32 +31,67 @@ namespace gostGUI
 
             txtEdit.KeyDown += new KeyEventHandler(txtEdit_KeyDown);
 			// init前面已经把选项放到listBox1里面了
-			int index=0;
-            foreach (string s in listBox1.Items)
-			{
-				if( s == getCfgVal("lastItem"))
-				{
-					listBox1.SelectedIndex = index;
-					start();
-					break;
-				}
-				index++;
-			}
+			//int index=0;
+   //         foreach (string s in listBox1.Items)
+			//{
+			//	if( s == getCfgVal("lastItem"))
+			//	{
+			//		listBox1.SelectedIndex = index;
+			//		start();
+			//		break;
+			//	}
+			//	index++;
+			//}
 
 			
 
         }
         void initFromConfig()
         {
-            //string exeDirPath = System.IO.Path.GetDirectoryName(Common.GetApplicationPath());
             string exeDirPath = (Common.GetApplicationPath());
-            string path = exeDirPath + "/cmd.conf";
+            string path = exeDirPath + "/config.json";
 
-            Common.loadIni(path, out cfgDic);
-            if (cfgDic.ContainsKey("program"))
-                textBox1.Text = cfgDic["program"];
-            else
-                textBox1.Text = "gost.exe";
+            Common.LoadJson(path, out configData);
+
+            if (configData != null)
+            {
+                //textBox1.Text = configData.Program;
+                listBox1.Items.Clear();
+                foreach (var item in configData.Items)
+                {
+                    listBox1.Items.Add(item.Name);
+
+                    // Create a new textBox_log for each item
+                    TextBox textBoxLog = new TextBox();
+                    textBoxLog.Location = textBox_log.Location;
+                    textBoxLog.Size = textBox_log.Size;
+                    textBoxLog.BackColor = textBox_log.BackColor;
+                    textBoxLog.ForeColor = textBox_log.ForeColor;
+                    textBoxLog.Multiline = true;
+                    textBoxLog.ReadOnly = true;
+                    textBoxLog.ScrollBars = textBox_log.ScrollBars; // Copy scrollbar settings
+                    textBoxLog.WordWrap = textBox_log.WordWrap;   // Copy word wrap settings
+                    textBoxLog.TextAlign = textBox_log.TextAlign;   // Copy text alignment
+                    textBoxLog.BorderStyle = textBox_log.BorderStyle; // Copy border style
+                    //textBoxLog.Dock = DockStyle.Fill;
+                    textBoxLog.Visible = true; // Initially hide all textBox_log
+                    textBoxLogs[item.Name] = textBoxLog;
+
+                    // Add the textBoxLog to the form (you might need to adjust the location and size)
+                    this.groupBox1.Controls.Add(textBoxLog);
+                    //this.groupBox1.Controls.SetChildIndex(textBoxLog, 0);
+                }
+
+                // old
+                textBox_log.Visible = false;
+                // Select the first item by default
+                if (listBox1.Items.Count > 0)
+                {
+                    listBox1.SelectedIndex = 0;
+                }
+            }
+
+           
 
            
 
@@ -62,16 +99,16 @@ namespace gostGUI
             //    lastStatus = cfgDic["lastStatus"];
 
 
-            listBox1.Items.Clear();
-            foreach (var cfg in cfgDic)
-            {
-                if (cfg.Key == "program")
-                    continue;
-                if (cfg.Key == "lastItem")
-                    continue;
+            //listBox1.Items.Clear();
+            //foreach (var cfg in cfgDic)
+            //{
+            //    if (cfg.Key == "program")
+            //        continue;
+            //    if (cfg.Key == "lastItem")
+            //        continue;
 
-                listBox1.Items.Add(cfg.Key);
-            }
+            //    listBox1.Items.Add(cfg.Key);
+            //}
             //if (cfgDic.ContainsKey("args"))
             //    textBox_Arg.Text = cfgDic["args"];
             //else
@@ -97,20 +134,8 @@ namespace gostGUI
         }
         void saveCfgToFile()
         {
-            string cfgStr = "program=" + textBox1.Text + Environment.NewLine;
-
-            //cfgStr += "lastItem=" + lastItem + Environment.NewLine;
-
-
-            foreach (var cfg in cfgDic)
-            {
-                if (cfg.Key == "program")
-                    continue;
-
-                cfgStr += cfg.Key +"=" + cfg.Value + Environment.NewLine;
-            }
-            string cfgFile = Common.GetApplicationPath() + "/cmd.conf";
-            Common.SaveToFile(System.Text.Encoding.ASCII.GetBytes(cfgStr), cfgFile);
+            string cfgFile = Common.GetApplicationPath() + "/config.json";
+            Common.SaveToFile(configData, cfgFile);
         }
 
         private void OnApplicationExit(object sender, EventArgs e)
@@ -118,81 +143,120 @@ namespace gostGUI
             stop();
         }
 
+        private string getCurrentItem()
+        {
+            string selectedItemName = listBox1.SelectedItem?.ToString();
+            if (string.IsNullOrEmpty(selectedItemName))
+            {
+                MessageBox.Show("Please select an item from the list.");
+                return "";
+            }
+
+            // Find the selected item in the config data
+            ConfigItem selectedConfigItem = configData.Items.Find(item => item.Name == selectedItemName);
+            if (selectedConfigItem == null)
+            {
+                MessageBox.Show("Selected item not found in the configuration.");
+                return "";
+            }
+            return selectedItemName;
+        }
+
         void start()
         {
-            saveCfgToFile();
+            // Get the selected item name
+            string selectedItemName = getCurrentItem();
 
-
+            // Get the program and arguments from the selected item
             string exeFilePath = textBox1.Text;
             string argsstr = textBox_Arg.Text;
 
             if (!File.Exists(exeFilePath))
             {
-                //  MessageBox.(fie.FileName);
-                //DialogResult diagorel = MessageBox.Show(this,
-                //    "Please inpult right exe path, Program file does not exist!",
-                //    "File does not exist!",
-                //    MessageBoxButtons.OK,
-                //    MessageBoxIcon.Warning);
-                outputAdd("!!! Program file does not exist !!!");
+                outputAdd("!!! Program file does not exist !!!", selectedItemName);
                 return;
             }
 
+            // Stop the existing process if it is running
+            stop(selectedItemName);
 
-            stop();
-            p = null;
-            p = new Process();
-            // 自定义shell
+            // Create a new process
+            Process p = new Process();
             p.StartInfo.UseShellExecute = false;
-            // 避免显示原始窗口
             p.StartInfo.CreateNoWindow = true;
-            // 重定向标准输入（原来是CON）
             p.StartInfo.WorkingDirectory = Common.GetApplicationPath();
-
-            p.StartInfo.RedirectStandardInput = false;// true;
-            // 重定向标准输出
+            p.StartInfo.RedirectStandardInput = false;
             p.StartInfo.RedirectStandardOutput = true;
-            // 数据接收事件（标准输出重定向至此）
-            p.OutputDataReceived += new DataReceivedEventHandler(p_OutputDataReceived);
-
+            // Pass the selectedItemName to the event handler
+            p.OutputDataReceived += new DataReceivedEventHandler((sender, e) => p_OutputDataReceived(sender, e, selectedItemName));
             p.StartInfo.RedirectStandardError = true;
-            p.ErrorDataReceived += new DataReceivedEventHandler(p_OutputDataReceived);
-
-            //support process exit event
+            // Pass the selectedItemName to the event handler
+            p.ErrorDataReceived += new DataReceivedEventHandler((sender, e) => p_OutputDataReceived(sender, e, selectedItemName));
             p.EnableRaisingEvents = true;
-            p.Exited += new EventHandler(p_Exit);
+            p.Exited += new EventHandler((sender, e) => p_Exit(sender, e, selectedItemName));
 
-            // 界面按钮互锁
-            button_stop.Enabled = false;
+            // Set the program and arguments
+            p.StartInfo.FileName = exeFilePath;
+            p.StartInfo.Arguments = argsstr;
+            try
+            {
+                startOK = p.Start();
 
-            p.StartInfo.FileName = textBox1.Text;
-            p.StartInfo.Arguments = textBox_Arg.Text;
+            }
+            catch (Exception e)
+            {
+                update(e.Message, selectedItemName);
+            }
 
-            startOK = p.Start();
             if (startOK)
             {
-                outputAdd("run sucess.");
-                // 重定向输入
-                //input = p.StandardInput;
-                // 开始监控输出（异步读取）
+                outputAdd("run sucess.", selectedItemName);
                 p.BeginOutputReadLine();
                 p.BeginErrorReadLine();
-                // 界面按钮互锁
-                button_start.Enabled = false;
+                //button_start.Enabled = false;
                 button_stop.Enabled = true;
-                //listBox1.Enabled = false;
+
+                // Store the process in the dictionary
+                processes[selectedItemName] = p;
             }
             else
             {
-                outputAdd("run failed.");
+                outputAdd("run failed.", selectedItemName);
             }
-            outputAdd("---------------------------------------------------------");
+            outputAdd("---------------------------------------------------------", selectedItemName);
         }
 
         void stop()
         {
+            string selectedItemName = listBox1.SelectedItem?.ToString();
+            if (string.IsNullOrEmpty(selectedItemName))
+            {
+                MessageBox.Show("Please select an item from the list.");
+                return;
+            }
+
+            // Find the selected item in the config data
+            ConfigItem selectedConfigItem = configData.Items.Find(item => item.Name == selectedItemName);
+            if (selectedConfigItem == null)
+            {
+                MessageBox.Show("Selected item not found in the configuration.");
+                return;
+            }
+            stop(selectedItemName);
+            outputAdd("!!! stop program !!!", selectedItemName);
+        }
+
+        void stop(string itemName)
+        {
+            if (!processes.ContainsKey(itemName))
+            {
+                return;
+            }
+
+            Process p = processes[itemName];
             if (p == null)
                 return;
+
             if (p.HasExited)
             {
                 outputAdd("program is not running.");
@@ -204,31 +268,30 @@ namespace gostGUI
                 p.Kill();
                 p.Close();
                 p.Dispose();
-               
             }
             catch (Exception e)
             {
-                update(e.Message);
+                update(e.Message, itemName);
             }
-            p = null;
+
+            processes.Remove(itemName);
             outputAdd("!!! stop program !!!");
         }
 
-        private void p_Exit(object sender, System.EventArgs e)
+        private void p_Exit(object sender, System.EventArgs e, string itemName)
         {
-            //double runtime  = (p.ExitTime - p.StartTime).TotalMilliseconds;
-            System.Threading.Thread.Sleep(10);
-            update("!!! program exits !!!" + Environment.NewLine);
-            updateButton();
+            System.Threading.Thread.Sleep(10);// ms
+            update("!!! program exits !!!" + Environment.NewLine, itemName);
+            updateStatus(itemName);
         }
-        delegate void buttonDelegate();
-        void updateButton()
+        delegate void buttonDelegate(string itemName);
+        void updateStatus(string itemName)
         {
             if (this.InvokeRequired)
             {
                 try
                 {
-                    Invoke(new buttonDelegate(updateButton), new object[] { });
+                    Invoke(new buttonDelegate(updateStatus), new object[] { itemName });
                 }
                 catch (Exception)
                 {
@@ -237,26 +300,27 @@ namespace gostGUI
             }
             else
             {
+                //configData[itemName]
                 button_start.Enabled = true;
                 
             }
         }
 
-        void p_OutputDataReceived(object sender, DataReceivedEventArgs e)
+        void p_OutputDataReceived(object sender, DataReceivedEventArgs e, string itemName)
         {
-            update(e.Data + Environment.NewLine);
+            update(e.Data + Environment.NewLine, itemName);
         }
 
 
 
-        delegate void updateDelegate(string msg);
-        void update(string msg)
+        delegate void updateDelegate(string msg, string itemName);
+        void update(string msg, string itemName)
         {
             if (this.InvokeRequired)
             {
                 try
                 {
-                    Invoke(new updateDelegate(update), new object[] { msg });
+                    Invoke(new updateDelegate(update), new object[] { msg, itemName });
                 }
                 catch (Exception)
                 {
@@ -265,37 +329,51 @@ namespace gostGUI
             }
             else
             {
-                textBox_log.AppendText(msg);
-                if (textBox_log.Text.Length > textBox_log.MaxLength)
-                    textBox_log.Clear();
+                if (textBoxLogs.ContainsKey(itemName))
+                {
+                    TextBox textBoxLog = textBoxLogs[itemName];
 
-                textBox_log.SelectionStart = textBox_log.Text.Length - 1;
-                textBox_log.ScrollToCaret();
+                    // Get the current vertical scroll position
+                    
+
+                    textBoxLog.AppendText(msg);
+                    if (textBoxLog.Text.Length > textBoxLog.MaxLength)
+                        textBoxLog.Clear();
+
+                    // Set the vertical scroll position to the bottom
+                    textBoxLog.ScrollToCaret();
+                }
             }
         }
+
+        
 
         // start
         private void buttonStart_Click(object sender, EventArgs e)
         {
 			// set lastItem
-			String currentItem = listBox1.Items[listBox1.SelectedIndex].ToString();
-			if(currentItem != "")
-                cfgDic["lastItem"] = currentItem;
+			//String currentItem = listBox1.Items[listBox1.SelectedIndex].ToString();
+			//if(currentItem != "")
+             //             cfgDic["lastItem"] = currentItem;
 			
 			
             start();
         }
-
         private void outputAdd(string str)
+        {
+            string itemName = getCurrentItem();
+            outputAdd(str,itemName);
+        }
+        private void outputAdd(string str, string itemName)
         {
             try
             {
-                textBox_log.AppendText(str);
-                textBox_log.AppendText(Environment.NewLine);
+                textBoxLogs[itemName].AppendText(str);
+                textBoxLogs[itemName].AppendText(Environment.NewLine);
             }
-            catch(Exception) {
+            catch (Exception)
+            {
                 // do nothing
-                ;
             }
         }
 
@@ -334,21 +412,25 @@ namespace gostGUI
         //stop 
         private void buttonStop_Click(object sender, EventArgs e)
         {
-            if (startOK)
+            string selectedItemName = listBox1.SelectedItem?.ToString();
+            if (string.IsNullOrEmpty(selectedItemName))
             {
-                stop();
+                MessageBox.Show("Please select an item from the list.");
+                return;
             }
-            button_start.Enabled = true;
-            button_stop.Enabled = false;
-            //listBox1.Enabled = true;
+
+            stop(selectedItemName);
+            //button_start.Enabled = true;
+            //button_stop.Enabled = false;
+
         }
 
         private void textBox1_DragDrop(object sender, DragEventArgs e)
         {
             string path = ((System.Array)e.Data.GetData(DataFormats.FileDrop)).GetValue(0).ToString();       //获得路径
             textBox1.Text = path;
-            cfgDic["program"] = path;
-            saveCfgToFile();
+            // Get the selected item name
+            update_textBox1(textBox1.Text);
         }
 
         private void textBox1_DragEnter(object sender, DragEventArgs e)
@@ -359,13 +441,32 @@ namespace gostGUI
                 e.Effect = DragDropEffects.None;
         }
 
+        private void update_textBox1(string path)
+        {
+            string selectedItemName = listBox1.SelectedItem?.ToString();
+            if (!string.IsNullOrEmpty(selectedItemName))
+            {
+                // Find the selected item in the config data
+                ConfigItem selectedConfigItem = configData.Items.Find(item => item.Name == selectedItemName);
+                if (selectedConfigItem != null)
+                {
+                    // Update the Program property of the selected item
+                    selectedConfigItem.Program = path;
+                    saveCfgToFile();
+                }
+            }
+            else
+            {
+                MessageBox.Show("Please select an item from the list before dragging and dropping.");
+            }
+        }
         //private void FormMain_DragDrop(object sender, DragEventArgs e)
         //{
         //    string path = ((System.Array)e.Data.GetData(DataFormats.FileDrop)).GetValue(0).ToString();       //获得路径
         //    textBox1.Text = path;
         //}
 
-        private void button3_Click(object sender, EventArgs e)
+        private void button_select_Click(object sender, EventArgs e)
         {
             OpenFileDialog fie = new OpenFileDialog();
             //创建对象
@@ -382,10 +483,9 @@ namespace gostGUI
             if (fie.ShowDialog() == DialogResult.OK)
             {
                 //MessageBox.Show(fie.FileName);
-                //用户点击 打开 后要执灯的代码
                 textBox1.Text = fie.FileName;
+                update_textBox1(textBox1.Text);
             }
-
         }
 
         private void clearButton_Click(object sender, EventArgs e)
@@ -497,20 +597,33 @@ namespace gostGUI
 
         private void listBox1_SelectedIndexChanged(object sender, EventArgs e)
         {
-            int itemSelected = listBox1.SelectedIndex;
-            if (itemSelected < 0)
+            if (listBox1.SelectedItem != null)
             {
-                return;
-                //itemSelected = 0;
-                //this.listBox1.SelectedValue = 0;
+                string selectedItemName = listBox1.SelectedItem.ToString();
+
+                // Find the selected item in the config data
+                ConfigItem selectedConfigItem = configData.Items.Find(item => item.Name == selectedItemName);
+
+                if (selectedConfigItem != null)
+                {
+                    // Update the textboxes with the selected item's data
+                    textBox1.Text = selectedConfigItem.Program;
+                    textBox_Arg.Text = selectedConfigItem.Args;
+
+                    // Show the selected textBox_log and hide others
+                    foreach (var itemName in textBoxLogs.Keys)
+                    {
+                        if (itemName == selectedItemName)
+                        {
+                            textBoxLogs[itemName].Visible = true;
+                        }
+                        else
+                        {
+                            textBoxLogs[itemName].Visible = false;
+                        }
+                    }
+                }
             }
-            string itemText = listBox1.Items[itemSelected].ToString();
-            string argStr = "";
-            bool ret = getArg(itemText, out argStr);
-            if (!ret)
-                return;
-            
-            textBox_Arg.Text = argStr;
         }
 
         bool getArg(string key, out string value)
