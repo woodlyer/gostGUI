@@ -1,10 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Text.Encodings.Web;
 using System.Text.Json;
-using System.Text.Json.Serialization;
-
-using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
 
@@ -15,7 +13,7 @@ public class ConfigItem
     public string Name { get; set; }
 
     [JsonPropertyName("enable")]
-    public string Enable { get; set; }
+    public bool Enable { get; set; }
 
     [JsonPropertyName("program")]
     public string Program { get; set; }
@@ -28,7 +26,7 @@ public class ConfigItem
 public class ConfigData
 {
     [JsonPropertyName("autoRun")]
-    public string AutoRun { get; set; }
+    public bool AutoRun { get; set; }
 
     [JsonPropertyName("items")]
     public List<ConfigItem> Items { get; set; }
@@ -45,7 +43,7 @@ public class Common
     {
         configData = new ConfigData
         {
-            AutoRun = "false",
+            AutoRun = false,
             Items = new List<ConfigItem>()
         };
 
@@ -66,7 +64,12 @@ public class Common
     {
         try
         {
-            string jsonString = JsonSerializer.Serialize(configData, new JsonSerializerOptions { WriteIndented = true });
+            var options = new JsonSerializerOptions
+            {
+                Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+                WriteIndented = true
+            };
+            string jsonString = JsonSerializer.Serialize(configData, options);
             File.WriteAllText(filePath, jsonString);
         }
         catch (Exception ex)
@@ -75,4 +78,3 @@ public class Common
         }
     }
 }
-

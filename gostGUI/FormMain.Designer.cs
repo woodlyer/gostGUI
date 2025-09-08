@@ -1,4 +1,4 @@
-﻿namespace gostGUI
+﻿﻿namespace gostGUI
 {
     partial class FormMain
     {
@@ -43,12 +43,14 @@
             this.label2 = new System.Windows.Forms.Label();
             this.button_stop = new System.Windows.Forms.Button();
             this.button_select = new System.Windows.Forms.Button();
-            this.button4 = new System.Windows.Forms.Button();
+            this.button_Clear = new System.Windows.Forms.Button();
             this.label3 = new System.Windows.Forms.Label();
             this.backgroundWorker1 = new System.ComponentModel.BackgroundWorker();
             this.groupBox1 = new System.Windows.Forms.GroupBox();
             this.groupBox2 = new System.Windows.Forms.GroupBox();
             this.checkBox1_autostart = new System.Windows.Forms.CheckBox();
+            this.button_stopAll = new System.Windows.Forms.Button();
+            this.button_StartAll = new System.Windows.Forms.Button();
             this.button_Exit = new System.Windows.Forms.Button();
             this.listBox1 = new System.Windows.Forms.ListBox();
             this.contextMenuStrip_listbox = new System.Windows.Forms.ContextMenuStrip(this.components);
@@ -132,7 +134,6 @@
             this.textBox_Arg.AllowDrop = true;
             resources.ApplyResources(this.textBox_Arg, "textBox_Arg");
             this.textBox_Arg.Name = "textBox_Arg";
-            this.textBox_Arg.KeyDown += new System.Windows.Forms.KeyEventHandler(this.textBox_Arg_KeyDown);
             // 
             // label2
             // 
@@ -154,12 +155,12 @@
             this.button_select.UseVisualStyleBackColor = true;
             this.button_select.Click += new System.EventHandler(this.button_select_Click);
             // 
-            // button4
+            // button_Clear
             // 
-            resources.ApplyResources(this.button4, "button4");
-            this.button4.Name = "button4";
-            this.button4.UseVisualStyleBackColor = true;
-            this.button4.Click += new System.EventHandler(this.clearButton_Click);
+            resources.ApplyResources(this.button_Clear, "button_Clear");
+            this.button_Clear.Name = "button_Clear";
+            this.button_Clear.UseVisualStyleBackColor = true;
+            this.button_Clear.Click += new System.EventHandler(this.clearButton_Click);
             // 
             // label3
             // 
@@ -168,7 +169,7 @@
             // 
             // groupBox1
             // 
-            this.groupBox1.Controls.Add(this.button4);
+            this.groupBox1.Controls.Add(this.button_Clear);
             this.groupBox1.Controls.Add(this.button_start);
             this.groupBox1.Controls.Add(this.textBox_log);
             this.groupBox1.Controls.Add(this.button_stop);
@@ -182,6 +183,8 @@
             // groupBox2
             // 
             this.groupBox2.Controls.Add(this.checkBox1_autostart);
+            this.groupBox2.Controls.Add(this.button_stopAll);
+            this.groupBox2.Controls.Add(this.button_StartAll);
             this.groupBox2.Controls.Add(this.button_Exit);
             this.groupBox2.Controls.Add(this.listBox1);
             resources.ApplyResources(this.groupBox2, "groupBox2");
@@ -194,6 +197,20 @@
             this.checkBox1_autostart.Name = "checkBox1_autostart";
             this.checkBox1_autostart.UseVisualStyleBackColor = true;
             this.checkBox1_autostart.Click += new System.EventHandler(this.checkBox1_autostart_Click);
+            // 
+            // button_stopAll
+            // 
+            resources.ApplyResources(this.button_stopAll, "button_stopAll");
+            this.button_stopAll.Name = "button_stopAll";
+            this.button_stopAll.UseVisualStyleBackColor = true;
+            this.button_stopAll.Click += new System.EventHandler(this.button_stopAll_Click);
+            // 
+            // button_StartAll
+            // 
+            resources.ApplyResources(this.button_StartAll, "button_StartAll");
+            this.button_StartAll.Name = "button_StartAll";
+            this.button_StartAll.UseVisualStyleBackColor = true;
+            this.button_StartAll.Click += new System.EventHandler(this.button_StartAll_Click);
             // 
             // button_Exit
             // 
@@ -299,7 +316,7 @@
         private System.Windows.Forms.Button button_select;
         private System.Windows.Forms.ToolStripMenuItem startToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem stopToolStripMenuItem;
-        private System.Windows.Forms.Button button4;
+        private System.Windows.Forms.Button button_Clear;
         private System.Windows.Forms.Label label3;
         private System.ComponentModel.BackgroundWorker backgroundWorker1;
         private System.Windows.Forms.GroupBox groupBox1;
@@ -313,6 +330,7 @@
         private System.Windows.Forms.ToolStripMenuItem deleteToolStripMenuItem;
         private System.Windows.Forms.Button button_Exit;
         private System.Windows.Forms.CheckBox checkBox1_autostart;
+        private System.Windows.Forms.Button button_stopAll;
+        private System.Windows.Forms.Button button_StartAll;
     }
 }
-

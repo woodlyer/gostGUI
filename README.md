@@ -23,8 +23,9 @@ Just  run silently at background.
 
 
 ### Change log
-- v01  support multi args
+- v0.1  support multi args
 - v1.2 add auto start function.
+- v1.3 support multi program running at once.
 
 
 
