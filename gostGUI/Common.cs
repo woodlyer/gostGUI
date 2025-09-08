@@ -1,151 +1,78 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-
 using System.IO;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+
+using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
 
-class Common
+
+public class ConfigItem
 {
-    static public string GetApplicationPath()
+    [JsonPropertyName("name")]
+    public string Name { get; set; }
+
+    [JsonPropertyName("enable")]
+    public string Enable { get; set; }
+
+    [JsonPropertyName("program")]
+    public string Program { get; set; }
+
+    [JsonPropertyName("args")]
+    public string Args { get; set; }
+}
+
+
+public class ConfigData
+{
+    [JsonPropertyName("autoRun")]
+    public string AutoRun { get; set; }
+
+    [JsonPropertyName("items")]
+    public List<ConfigItem> Items { get; set; }
+}
+
+public class Common
+{
+    public static string GetApplicationPath()
     {
-        string ApplicationPath = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().GetModules()[0].FullyQualifiedName);
-        return ApplicationPath;
+        return AppDomain.CurrentDomain.BaseDirectory;
     }
 
-    static public bool SaveToFile(byte[] dataBuf, string fileName)
+    public static bool LoadJson(string path, out ConfigData configData)
     {
-        try
+        configData = new ConfigData
         {
-            using (FileStream fs = new FileStream(fileName, FileMode.OpenOrCreate))
-            {
-                using (BinaryWriter bw = new BinaryWriter(fs))
-                {   
-                    bw.Write(dataBuf);
-                    fs.SetLength(dataBuf.Length);
-                    return true;
-                }
-            }
-        }
-        catch (System.Exception)
-        {
-            return false;
-        }
-    }
-
-    static public bool LoadBufFromFile(string fileName, out byte[] dataBuf)
-    {
-        dataBuf = null;
-        try
-        {
-            byte[] data = null;
-            using (FileStream fs = new FileStream(fileName, FileMode.OpenOrCreate))
-            {
-                using (BinaryReader br = new BinaryReader(fs))
-                {
-                    if (fs.Length > 0)
-                    {
-                        data = new byte[fs.Length];
-                        br.Read(data, 0, data.Length);
-                        dataBuf = data;
-                        return true;
-                    }
-                }
-            }
-            return false;
-        }
-        catch (System.Exception)
-        {
-            return false;
-        }
-    }
-    static public void TrimString(ref string strLine)
-    {
-        if (string.IsNullOrEmpty(strLine))
-        {
-            return;
-        }
-        try
-        {
-            int commentPos = strLine.IndexOf("//");
-            if (commentPos >= 0)
-            {
-                strLine = strLine.Substring(0, commentPos);
-            }
-            strLine = System.Text.RegularExpressions.Regex.Replace(strLine, "\\s+", " ");
-            strLine.Trim();
-            if (strLine.Length <= 0)
-            {
-                return;
-            }
-            if (strLine[strLine.Length - 1] == ' ' && strLine.Length > 0)
-            {
-                strLine = strLine.Substring(0, strLine.Length - 1);
-            }
-            if (strLine.Length > 0 && strLine[0] == ' ')
-            {
-                strLine = strLine.Substring(1, strLine.Length - 1);
-            }
-        }
-        catch (Exception)
-        {
-            return;
-        }
-    }
-
-    public static bool loadIni(string fullPathName, out Dictionary<string, string> retDic)
-    {
-        retDic = new Dictionary<string, string>();
-
-        string filePath = fullPathName;
+            AutoRun = "false",
+            Items = new List<ConfigItem>()
+        };
 
         try
         {
-            Encoding encoding = Encoding.ASCII;// Encoding.UTF8;
-            using (FileStream fs = new FileStream(filePath, FileMode.Open, FileAccess.Read))
-            {
-                using (StreamReader sr = new StreamReader(fs, encoding))
-                {
-                    string strLine;
-                    while ((strLine = sr.ReadLine()) != null)
-                    {
-                        //TrimString(ref strLine);
-                        if (strLine.Length < 1) { continue; }
-
-                        int pos = strLine.IndexOf('=');
-                        if (pos <= 0)
-                            continue;
-
-                        string name = strLine.Substring(0, pos);
-                        string value = strLine.Substring(pos + 1);
-
-                        TrimString(ref name);
-                        //TrimString(ref value);
-
-                        if (string.IsNullOrEmpty(name))// || string.IsNullOrEmpty(value))
-                            continue;
-
-
-                        //name = name.ToLower();
-                        //value = value.ToLower();
-
-                        if (!retDic.ContainsKey(name))
-                        {
-                            retDic[name] = value;
-                        }
-                    }
-                }
-            }
+            string jsonString = File.ReadAllText(path);
+            configData = JsonSerializer.Deserialize<ConfigData>(jsonString);
             return true;
         }
-        catch (Exception )
+        catch (Exception ex)
         {
+            Console.WriteLine("Error loading config file: " + ex.Message);
             return false;
         }
-
     }
 
-
+    public static void SaveToFile(ConfigData configData, string filePath)
+    {
+        try
+        {
+            string jsonString = JsonSerializer.Serialize(configData, new JsonSerializerOptions { WriteIndented = true });
+            File.WriteAllText(filePath, jsonString);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Error saving to file: " + ex.Message);
+        }
+    }
 }
 

@@ -152,7 +152,7 @@
             resources.ApplyResources(this.button_select, "button_select");
             this.button_select.Name = "button_select";
             this.button_select.UseVisualStyleBackColor = true;
-            this.button_select.Click += new System.EventHandler(this.button3_Click);
+            this.button_select.Click += new System.EventHandler(this.button_select_Click);
             // 
             // button4
             // 
