@@ -780,7 +780,7 @@
     <value>CenterScreen</value>
   </data>
   <data name="$this.Text" xml:space="preserve">
-    <value>gostGUI v1.3</value>
+    <value>gostGUI v1.5</value>
   </data>
   <data name="&gt;&gt;notifyIcon1.Name" xml:space="preserve">
     <value>notifyIcon1</value>

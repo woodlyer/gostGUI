@@ -38,6 +38,7 @@ namespace gostGUI
             this.textBox1.Leave += new System.EventHandler(this.textBox1_Leave);
             this.textBox_Arg.Leave += new System.EventHandler(this.textBox_Arg_Leave);
             Application.ApplicationExit += new EventHandler(this.OnApplicationExit);
+            listbox_txtBox.Leave += new System.EventHandler(this.listbox_txtBox_Leave);
             listbox_txtBox.KeyDown += new KeyEventHandler(listbox_txtBox_KeyDown);
         }
         void initFromConfig()
@@ -600,7 +601,11 @@ namespace gostGUI
 
         private void listBox1_MouseClick(object sender, MouseEventArgs e)
         {
-            listbox_txtBox.Visible = false;
+            // This method used to hide the edit box, effectively cancelling the edit.
+            // Now, the Leave event of the textbox handles committing the changes,
+            // so this method is no longer needed for that purpose.
+            // A single click on the listbox will cause the textbox to lose focus,
+            // which correctly triggers the Leave event.
         }
 
 
@@ -609,6 +614,71 @@ namespace gostGUI
             //MessageBox.Show("Active");
         }
 
+        private void listbox_txtBox_Leave(object sender, EventArgs e)
+        {
+            // Commit changes when the textbox loses focus.
+            EndListBoxEdit(true);
+        }
+        private void EndListBoxEdit(bool commitChanges)
+        {
+            // If the textbox is not visible, there is nothing to do.
+            if (!listbox_txtBox.Visible)
+            {
+                return;
+            }
+
+            if (commitChanges)
+            {
+                int selectedIndex = listBox1.SelectedIndex;
+                if (selectedIndex < 0)
+                {
+                    listbox_txtBox.Visible = false;
+                    return;
+                }
+
+                string oldName = listBox1.Items[selectedIndex].ToString();
+                string newName = listbox_txtBox.Text.Trim();
+
+                // If name is unchanged or empty, just hide the textbox.
+                if (string.IsNullOrEmpty(newName) || newName == oldName)
+                {
+                    listbox_txtBox.Visible = false;
+                    return;
+                }
+
+                // Check for duplicates
+                if (configData.Items.Exists(item => item.Name == newName))
+                {
+                    MessageBox.Show("An item with this name already exists.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    listbox_txtBox.Focus(); // Keep the textbox focused for correction
+                    return; // Do not hide the textbox
+                }
+
+                // Commit the changes
+                ConfigItem itemToRename = configData.Items.Find(item => item.Name == oldName);
+                if (itemToRename != null)
+                {
+                    itemToRename.Name = newName;
+
+                    // Update dictionaries
+                    if (processes.ContainsKey(oldName))
+                    {
+                        processes[newName] = processes[oldName];
+                        processes.Remove(oldName);
+                    }
+                    if (textBoxLogs.ContainsKey(oldName))
+                    {
+                        textBoxLogs[newName] = textBoxLogs[oldName];
+                        textBoxLogs.Remove(oldName);
+                    }
+
+                    listBox1.Items[selectedIndex] = newName;
+                    saveCfgToFile();
+                }
+            }
+
+            listbox_txtBox.Visible = false;
+        }
         private void editToolStripMenuItem_Click(object sender, EventArgs e)
         {
             listBox1_DoubleClick(sender, e);
