@@ -284,25 +284,25 @@
     <value>135, 17</value>
   </metadata>
   <data name="startToolStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
-    <value>102, 22</value>
+    <value>180, 24</value>
   </data>
   <data name="startToolStripMenuItem.Text" xml:space="preserve">
-    <value>start</value>
+    <value>startAll</value>
   </data>
   <data name="stopToolStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
-    <value>102, 22</value>
+    <value>180, 24</value>
   </data>
   <data name="stopToolStripMenuItem.Text" xml:space="preserve">
-    <value>stop</value>
+    <value>stopAll</value>
   </data>
   <data name="exitToolStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
-    <value>102, 22</value>
+    <value>180, 24</value>
   </data>
   <data name="exitToolStripMenuItem.Text" xml:space="preserve">
     <value>exit</value>
   </data>
   <data name="contextMenuStrip1.Size" type="System.Drawing.Size, System.Drawing">
-    <value>103, 70</value>
+    <value>181, 98</value>
   </data>
   <data name="&gt;&gt;contextMenuStrip1.Name" xml:space="preserve">
     <value>contextMenuStrip1</value>
@@ -415,28 +415,28 @@
   <data name="&gt;&gt;button_select.ZOrder" xml:space="preserve">
     <value>2</value>
   </data>
-  <data name="button4.Location" type="System.Drawing.Point, System.Drawing">
+  <data name="button_Clear.Location" type="System.Drawing.Point, System.Drawing">
     <value>719, 107</value>
   </data>
-  <data name="button4.Size" type="System.Drawing.Size, System.Drawing">
+  <data name="button_Clear.Size" type="System.Drawing.Size, System.Drawing">
     <value>75, 33</value>
   </data>
-  <data name="button4.TabIndex" type="System.Int32, mscorlib">
+  <data name="button_Clear.TabIndex" type="System.Int32, mscorlib">
     <value>9</value>
   </data>
-  <data name="button4.Text" xml:space="preserve">
+  <data name="button_Clear.Text" xml:space="preserve">
     <value>clear</value>
   </data>
-  <data name="&gt;&gt;button4.Name" xml:space="preserve">
-    <value>button4</value>
+  <data name="&gt;&gt;button_Clear.Name" xml:space="preserve">
+    <value>button_Clear</value>
   </data>
-  <data name="&gt;&gt;button4.Type" xml:space="preserve">
+  <data name="&gt;&gt;button_Clear.Type" xml:space="preserve">
     <value>System.Windows.Forms.Button, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="&gt;&gt;button4.Parent" xml:space="preserve">
+  <data name="&gt;&gt;button_Clear.Parent" xml:space="preserve">
     <value>groupBox1</value>
   </data>
-  <data name="&gt;&gt;button4.ZOrder" xml:space="preserve">
+  <data name="&gt;&gt;button_Clear.ZOrder" xml:space="preserve">
     <value>0</value>
   </data>
   <data name="label3.AutoSize" type="System.Boolean, mscorlib">
@@ -493,20 +493,23 @@
   <data name="&gt;&gt;groupBox1.ZOrder" xml:space="preserve">
     <value>4</value>
   </data>
+  <data name="checkBox1_autostart.AccessibleDescription" xml:space="preserve">
+    <value>是否开机自动启动</value>
+  </data>
   <data name="checkBox1_autostart.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
   </data>
   <data name="checkBox1_autostart.Location" type="System.Drawing.Point, System.Drawing">
-    <value>29, 531</value>
+    <value>34, 437</value>
   </data>
   <data name="checkBox1_autostart.Size" type="System.Drawing.Size, System.Drawing">
-    <value>78, 16</value>
+    <value>66, 16</value>
   </data>
   <data name="checkBox1_autostart.TabIndex" type="System.Int32, mscorlib">
     <value>2</value>
   </data>
   <data name="checkBox1_autostart.Text" xml:space="preserve">
-    <value>AutoStart</value>
+    <value>AutoRun</value>
   </data>
   <data name="&gt;&gt;checkBox1_autostart.Name" xml:space="preserve">
     <value>checkBox1_autostart</value>
@@ -519,6 +522,60 @@
   </data>
   <data name="&gt;&gt;checkBox1_autostart.ZOrder" xml:space="preserve">
     <value>0</value>
+  </data>
+  <data name="button_stopAll.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
+    <value>NoControl</value>
+  </data>
+  <data name="button_stopAll.Location" type="System.Drawing.Point, System.Drawing">
+    <value>6, 519</value>
+  </data>
+  <data name="button_stopAll.Size" type="System.Drawing.Size, System.Drawing">
+    <value>131, 43</value>
+  </data>
+  <data name="button_stopAll.TabIndex" type="System.Int32, mscorlib">
+    <value>1</value>
+  </data>
+  <data name="button_stopAll.Text" xml:space="preserve">
+    <value>Stop All</value>
+  </data>
+  <data name="&gt;&gt;button_stopAll.Name" xml:space="preserve">
+    <value>button_stopAll</value>
+  </data>
+  <data name="&gt;&gt;button_stopAll.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;button_stopAll.Parent" xml:space="preserve">
+    <value>groupBox2</value>
+  </data>
+  <data name="&gt;&gt;button_stopAll.ZOrder" xml:space="preserve">
+    <value>1</value>
+  </data>
+  <data name="button_StartAll.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
+    <value>NoControl</value>
+  </data>
+  <data name="button_StartAll.Location" type="System.Drawing.Point, System.Drawing">
+    <value>6, 470</value>
+  </data>
+  <data name="button_StartAll.Size" type="System.Drawing.Size, System.Drawing">
+    <value>131, 43</value>
+  </data>
+  <data name="button_StartAll.TabIndex" type="System.Int32, mscorlib">
+    <value>1</value>
+  </data>
+  <data name="button_StartAll.Text" xml:space="preserve">
+    <value>Start All</value>
+  </data>
+  <data name="&gt;&gt;button_StartAll.Name" xml:space="preserve">
+    <value>button_StartAll</value>
+  </data>
+  <data name="&gt;&gt;button_StartAll.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;button_StartAll.Parent" xml:space="preserve">
+    <value>groupBox2</value>
+  </data>
+  <data name="&gt;&gt;button_StartAll.ZOrder" xml:space="preserve">
+    <value>2</value>
   </data>
   <data name="button_Exit.Location" type="System.Drawing.Point, System.Drawing">
     <value>6, 568</value>
@@ -542,37 +599,37 @@
     <value>groupBox2</value>
   </data>
   <data name="&gt;&gt;button_Exit.ZOrder" xml:space="preserve">
-    <value>1</value>
+    <value>3</value>
   </data>
   <metadata name="contextMenuStrip_listbox.TrayLocation" type="System.Drawing.Point, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
     <value>474, 17</value>
   </metadata>
   <data name="activeToolStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
-    <value>113, 22</value>
+    <value>117, 24</value>
   </data>
   <data name="activeToolStripMenuItem.Text" xml:space="preserve">
     <value>Select</value>
   </data>
   <data name="editToolStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
-    <value>113, 22</value>
+    <value>117, 24</value>
   </data>
   <data name="editToolStripMenuItem.Text" xml:space="preserve">
     <value>Edit</value>
   </data>
   <data name="newToolStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
-    <value>113, 22</value>
+    <value>117, 24</value>
   </data>
   <data name="newToolStripMenuItem.Text" xml:space="preserve">
     <value>New</value>
   </data>
   <data name="deleteToolStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
-    <value>113, 22</value>
+    <value>117, 24</value>
   </data>
   <data name="deleteToolStripMenuItem.Text" xml:space="preserve">
     <value>Delete</value>
   </data>
   <data name="contextMenuStrip_listbox.Size" type="System.Drawing.Size, System.Drawing">
-    <value>114, 92</value>
+    <value>118, 100</value>
   </data>
   <data name="&gt;&gt;contextMenuStrip_listbox.Name" xml:space="preserve">
     <value>contextMenuStrip_listbox</value>
@@ -596,7 +653,7 @@
     <value>6, 17</value>
   </data>
   <data name="listBox1.Size" type="System.Drawing.Size, System.Drawing">
-    <value>131, 496</value>
+    <value>131, 400</value>
   </data>
   <data name="listBox1.TabIndex" type="System.Int32, mscorlib">
     <value>0</value>
@@ -611,7 +668,7 @@
     <value>groupBox2</value>
   </data>
   <data name="&gt;&gt;listBox1.ZOrder" xml:space="preserve">
-    <value>2</value>
+    <value>4</value>
   </data>
   <data name="groupBox2.Location" type="System.Drawing.Point, System.Drawing">
     <value>12, 5</value>
@@ -723,7 +780,7 @@
     <value>CenterScreen</value>
   </data>
   <data name="$this.Text" xml:space="preserve">
-    <value>gostGUI v1.2</value>
+    <value>gostGUI v1.5</value>
   </data>
   <data name="&gt;&gt;notifyIcon1.Name" xml:space="preserve">
     <value>notifyIcon1</value>

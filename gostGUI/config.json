@@ -1,15 +1,15 @@
 {
-  "autoRun": "false",
+  "autoRun": false,
   "items": [
     {
         "name": "item1",
-        "enable": "true",
+        "enable": true,
         "program": "gost.exe",
         "args": "-L 127.0.0.1:8080 -F \"tls://abc.com:4000\" "
     },
     {
         "name": "item2",
-        "enable": "true",
+        "enable": true,
         "program": "gost.exe",
         "args": "-L 127.0.0.1:8081 -F kcp://abc.com:4000"
     }
