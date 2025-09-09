@@ -147,9 +147,13 @@ namespace gostGUI
             p.StartInfo.WorkingDirectory = Common.GetApplicationPath();
             p.StartInfo.RedirectStandardInput = false;
             p.StartInfo.RedirectStandardOutput = true;
+            // Set the encoding for the output streams to handle non-ASCII characters (like Chinese) correctly.
+            p.StartInfo.StandardOutputEncoding = System.Text.Encoding.UTF8;
             // Pass the selectedItemName to the event handler
             p.OutputDataReceived += new DataReceivedEventHandler((sender, e) => p_OutputDataReceived(sender, e, selectedItemName));
             p.StartInfo.RedirectStandardError = true;
+            // Set the encoding for the error streams as well.
+            p.StartInfo.StandardErrorEncoding = System.Text.Encoding.UTF8;
             // Pass the selectedItemName to the event handler
             p.ErrorDataReceived += new DataReceivedEventHandler((sender, e) => p_OutputDataReceived(sender, e, selectedItemName));
             p.EnableRaisingEvents = true;
