@@ -13,20 +13,32 @@ namespace gostGUI
         // Dictionaries to hold the running process and log textbox for each configuration item.
         private Dictionary<string, Process> processes = new Dictionary<string, Process>();
         private Dictionary<string, TextBox> textBoxLogs = new Dictionary<string, TextBox>();
+        private JobObjectManager _jobManager;
 
         // for listbox edit
-        TextBox txtEdit = new TextBox();
+        TextBox listbox_txtBox = new TextBox();
 
         public FormMain()
         {
             InitializeComponent();
+
+            // Create a job object. All child processes will be assigned to this job.
+            // If the main application terminates (even crashes), all processes in the job will be killed by the OS.
+            try
+            {
+                _jobManager = new JobObjectManager();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Failed to create Job Object for process management. Child processes may not terminate automatically on crash.\n\nError: " + ex.Message, "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
             initFromConfig();
             checkAutoStartStatus();
             
             this.textBox1.Leave += new System.EventHandler(this.textBox1_Leave);
             this.textBox_Arg.Leave += new System.EventHandler(this.textBox_Arg_Leave);
             Application.ApplicationExit += new EventHandler(this.OnApplicationExit);
-            txtEdit.KeyDown += new KeyEventHandler(txtEdit_KeyDown);
+            listbox_txtBox.KeyDown += new KeyEventHandler(listbox_txtBox_KeyDown);
         }
         void initFromConfig()
         {
@@ -81,12 +93,9 @@ namespace gostGUI
 
         private void OnApplicationExit(object sender, EventArgs e)
         {
-            // Stop all running processes on exit
-            List<string> runningItems = new List<string>(processes.Keys);
-            foreach (var itemName in runningItems)
-            {
-                stop(itemName);
-            }
+            stopAll();
+            // This ensures the job object handle is closed cleanly on normal exit.
+            _jobManager?.Dispose();
         }
 
         private string getCurrentItem()
@@ -126,6 +135,7 @@ namespace gostGUI
                 return;
             }
 
+            // 如果正在运行，就直接返回。 
             // Stop the existing process if it is running
             stop(selectedItemName);
 
@@ -160,6 +170,12 @@ namespace gostGUI
 
             if (startOK)
             {
+                // Add the new process to the job object to ensure it's terminated if the parent crashes.
+                _jobManager?.AddProcess(p);
+
+                selectedConfigItem.Enable = true;
+                saveCfgToFile();
+
                 outputAdd("run sucess.", selectedItemName);
                 p.BeginOutputReadLine();
                 p.BeginErrorReadLine();
@@ -219,12 +235,25 @@ namespace gostGUI
             listBox1.Invalidate(); // Redraw listbox to show stopped icon
         }
 
+        // 进程结束的事件响应函数
         private void p_Exit(object sender, System.EventArgs e, string itemName)
         {
+            ConfigItem configItem = configData.Items.Find(item => item.Name == itemName);
+            if (configItem != null)
+            {
+                configItem.Enable = false;
+                saveCfgToFile();
+            }
+
+            Process p = sender as Process;
+            string exitMessage = $"!!! program exits !!!";
+            
             System.Threading.Thread.Sleep(50);// ms
-            update("!!! program exits !!!" + Environment.NewLine, itemName);
+            update(exitMessage + Environment.NewLine, itemName);
             updateStatus(itemName); 
         }
+
+        // 刷新界面的显示
         void updateStatus(string itemName)
         {
             if (this.InvokeRequired)
@@ -240,12 +269,7 @@ namespace gostGUI
             }
             else
             {
-                // Only update buttons if the currently selected item is the one that exited.
-                if (listBox1.SelectedItem?.ToString() == itemName)
-                {
-                    //button_start.Enabled = true;
-                    //button_stop.Enabled = false;
-                }
+                
                 listBox1.Invalidate(); // Redraw listbox to update status for all items
             }
         }
@@ -276,10 +300,7 @@ namespace gostGUI
                 if (textBoxLogs.ContainsKey(itemName))
                 {
                     TextBox textBoxLog = textBoxLogs[itemName];
-
                     // Get the current vertical scroll position
-                    
-
                     textBoxLog.AppendText(msg);
                     if (textBoxLog.Text.Length > textBoxLog.MaxLength)
                         textBoxLog.Clear();
@@ -321,7 +342,7 @@ namespace gostGUI
 
         private void FormMain_FormClosed(object sender, FormClosedEventArgs e)
         {
-            stop();
+            stopAll();
         }
 
         private void FormMain_FormClosing(object sender, FormClosingEventArgs e)
@@ -354,14 +375,18 @@ namespace gostGUI
         //stop 
         private void buttonStop_Click(object sender, EventArgs e)
         {
-            stop();
+            string selectedItemName = getCurrentItem();
+            if (!string.IsNullOrEmpty(selectedItemName))
+            {
+                stop(selectedItemName);
+            }
         }
 
+        //拖入应用
         private void textBox1_DragDrop(object sender, DragEventArgs e)
         {
             string path = ((System.Array)e.Data.GetData(DataFormats.FileDrop)).GetValue(0).ToString();       //获得路径
             textBox1.Text = path;
-            // Get the selected item name
             update_textBox1(textBox1.Text);
         }
 
@@ -400,18 +425,12 @@ namespace gostGUI
                 MessageBox.Show("Please select an item from the list before dragging and dropping.");
             }
         }
-        //private void FormMain_DragDrop(object sender, DragEventArgs e)
-        //{
-        //    string path = ((System.Array)e.Data.GetData(DataFormats.FileDrop)).GetValue(0).ToString();       //获得路径
-        //    textBox1.Text = path;
-        //}
+
 
         private void button_select_Click(object sender, EventArgs e)
         {
             OpenFileDialog fie = new OpenFileDialog();
-            //创建对象
             fie.Title = "select .exe program";
-            //设置文本框标题
 
             string cdstr = System.Environment.CurrentDirectory;
             fie.InitialDirectory = cdstr;
@@ -422,7 +441,6 @@ namespace gostGUI
             //获取选择的路径
             if (fie.ShowDialog() == DialogResult.OK)
             {
-                //MessageBox.Show(fie.FileName);
                 textBox1.Text = fie.FileName;
                 update_textBox1(textBox1.Text);
             }
@@ -458,17 +476,17 @@ namespace gostGUI
             Application.Exit();
         }
 
-        private void txtEdit_KeyDown(object sender, KeyEventArgs e)
+        private void listbox_txtBox_KeyDown(object sender, KeyEventArgs e)
         {
             //Enter键 更新项并隐藏编辑框   
             if (e.KeyCode == Keys.Enter)
             {
                 string oldName = listBox1.Items[listBox1.SelectedIndex].ToString();
-                string newName = txtEdit.Text.Trim();
+                string newName = listbox_txtBox.Text.Trim();
 
                 if (string.IsNullOrEmpty(newName) || newName == oldName)
                 {
-                    txtEdit.Visible = false;
+                    listbox_txtBox.Visible = false;
                     return;
                 }
 
@@ -497,20 +515,22 @@ namespace gostGUI
 
                     listBox1.Items[listBox1.SelectedIndex] = newName;
                     saveCfgToFile();
-                    txtEdit.Visible = false;
+                    listbox_txtBox.Visible = false;
                 }
             }
             //Esc键 直接隐藏编辑框   
             if (e.KeyCode == Keys.Escape)
-                txtEdit.Visible = false;
-
+                listbox_txtBox.Visible = false;
         }
+
         private void listBox1_DrawItem(object sender, DrawItemEventArgs e)
         {
             if (e.Index < 0)
             {
                 return;
             }
+
+            bool isSelected = (e.State & DrawItemState.Selected) == DrawItemState.Selected;
 
             e.DrawBackground();
 
@@ -519,22 +539,31 @@ namespace gostGUI
             // Check if the process for this item is running
             bool isRunning = processes.ContainsKey(itemName) && processes[itemName] != null && !processes[itemName].HasExited;
 
+            // Determine the color for the icon based on the selection state
+            Color iconColor;
+            if (isSelected)
+            {
+                // When selected, the background is blue. Use the same color as the text (usually white) for good contrast.
+                iconColor = e.ForeColor;
+            }
+            else
+            {
+                // When not selected, use custom colors. Using a brighter green for better visibility.
+                iconColor = isRunning ? Color.LimeGreen : Color.Gray;
+            }
+
             // Define icon properties
             int iconSize = 10;
             int iconMargin = 4;
             Rectangle iconRect = new Rectangle(e.Bounds.Left + iconMargin, e.Bounds.Top + (e.Bounds.Height - iconSize) / 2, iconSize, iconSize);
 
             // Draw the status icon
-            using (SolidBrush iconBrush = new SolidBrush(isRunning ? Color.Green : Color.Gray))
+            using (SolidBrush iconBrush = new SolidBrush(iconColor))
             {
                 if (isRunning)
                 {
                     // Draw a triangle (play icon)
-                    Point[] points = {
-                        new Point(iconRect.Left, iconRect.Top),
-                        new Point(iconRect.Right, iconRect.Top + iconRect.Height / 2),
-                        new Point(iconRect.Left, iconRect.Bottom)
-                    };
+                    Point[] points = { new Point(iconRect.Left, iconRect.Top), new Point(iconRect.Right, iconRect.Top + iconRect.Height / 2), new Point(iconRect.Left, iconRect.Bottom) };
                     e.Graphics.FillPolygon(iconBrush, points);
                 }
                 else
@@ -546,6 +575,7 @@ namespace gostGUI
 
             // Define the bounds for the text, shifted to the right of the icon
             Rectangle textRect = new Rectangle(iconRect.Right + iconMargin, e.Bounds.Top, e.Bounds.Width - iconRect.Right - iconMargin * 2, e.Bounds.Height);
+            // The system automatically sets e.ForeColor to the correct color for the state (selected/not selected)
             TextRenderer.DrawText(e.Graphics, itemName, e.Font, textRect, e.ForeColor, TextFormatFlags.Left | TextFormatFlags.VerticalCenter);
 
             e.DrawFocusRectangle();
@@ -557,20 +587,20 @@ namespace gostGUI
             string itemText = listBox1.Items[itemSelected].ToString();
 
             Rectangle rect = listBox1.GetItemRectangle(itemSelected);
-            txtEdit.Parent = listBox1;
+            listbox_txtBox.Parent = listBox1;
             rect.Height += 5;
-            txtEdit.Bounds = rect;
+            listbox_txtBox.Bounds = rect;
 
-            txtEdit.Multiline = true;
-            txtEdit.Visible = true;
-            txtEdit.Text = itemText;
-            txtEdit.Focus();
-            txtEdit.SelectAll();
+            listbox_txtBox.Multiline = true;
+            listbox_txtBox.Visible = true;
+            listbox_txtBox.Text = itemText;
+            listbox_txtBox.Focus();
+            listbox_txtBox.SelectAll();
         }
 
         private void listBox1_MouseClick(object sender, MouseEventArgs e)
         {
-            txtEdit.Visible = false;
+            listbox_txtBox.Visible = false;
         }
 
 
@@ -654,7 +684,7 @@ namespace gostGUI
                     textBox_Arg.Text = selectedConfigItem.Args;
 
                     // 检查所选进程的运行状态，与 listBox1_DrawItem 中的逻辑保持一致
-                    bool isRunning = processes.ContainsKey(selectedItemName) && processes[selectedItemName] != null && !processes[selectedItemName].HasExited;
+                    //bool isRunning = processes.ContainsKey(selectedItemName) && processes[selectedItemName] != null && !processes[selectedItemName].HasExited;
 
                     // 更新按钮状态以反映所选项的真实状态
                     //button_start.Enabled = !isRunning;
