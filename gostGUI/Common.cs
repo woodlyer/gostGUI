@@ -1,4 +1,4 @@
-﻿using System;
+﻿﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text.Encodings.Web;
@@ -53,9 +53,20 @@ public class Common
             configData = JsonSerializer.Deserialize<ConfigData>(jsonString);
             return true;
         }
+        catch (FileNotFoundException)
+        {
+            // Config file doesn't exist, which is fine on first run.
+            // A new one will be created.
+            return true; 
+        }
+        catch (JsonException ex)
+        {
+            System.Windows.Forms.MessageBox.Show("Error parsing config.json: " + ex.Message, "Config Error", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
+            return false;
+        }
         catch (Exception ex)
         {
-            Console.WriteLine("Error loading config file: " + ex.Message);
+            System.Windows.Forms.MessageBox.Show("Error loading config file: " + ex.Message, "Error", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
             return false;
         }
     }
@@ -74,7 +85,7 @@ public class Common
         }
         catch (Exception ex)
         {
-            Console.WriteLine("Error saving to file: " + ex.Message);
+            System.Windows.Forms.MessageBox.Show("Error saving to file: " + ex.Message, "Error", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
         }
     }
 }

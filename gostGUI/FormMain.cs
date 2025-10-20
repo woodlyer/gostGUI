@@ -9,11 +9,12 @@ namespace gostGUI
 {
     public partial class FormMain : Form
     {
-        ConfigData configData;
-        // Dictionaries to hold the running process and log textbox for each configuration item.
-        private Dictionary<string, Process> processes = new Dictionary<string, Process>();
-        private Dictionary<string, TextBox> textBoxLogs = new Dictionary<string, TextBox>();
-        private JobObjectManager _jobManager;
+        private ProcessManager _processManager;
+        private ConfigurationManager _configManager;
+        private LogViewManager _logViewManager;
+
+        private const string AppRegistryKey = "gostGUI";
+        private const string RunRegistryPath = "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run";
 
         // for listbox edit
         TextBox listbox_txtBox = new TextBox();
@@ -22,16 +23,28 @@ namespace gostGUI
         {
             InitializeComponent();
 
-            // Create a job object. All child processes will be assigned to this job.
-            // If the main application terminates (even crashes), all processes in the job will be killed by the OS.
             try
             {
-                _jobManager = new JobObjectManager();
+                _processManager = new ProcessManager();
+                _processManager.OutputReceived += OnProcessOutputReceived;
+                _processManager.ProcessExited += OnProcessExited;
+                _processManager.ProcessStarted += OnProcessStarted;
+                _processManager.ProcessStopped += OnProcessStopped;
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Failed to create Job Object for process management. Child processes may not terminate automatically on crash.\n\nError: " + ex.Message, "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show($"Failed to initialize process manager: {ex.Message}\n\nChild processes may not terminate automatically on crash.", "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
+
+            _configManager = new ConfigurationManager();
+            _configManager.ItemAdded += OnConfigItemAdded;
+            _configManager.ItemRenamed += OnConfigItemRenamed;
+            _configManager.ItemDeleted += OnConfigItemDeleted;
+            _configManager.ItemUpdated += OnConfigItemUpdated;
+
+            _logViewManager = new LogViewManager(this.groupBox1, this.textBox_log);
+
+
             initFromConfig();
             checkAutoStartStatus();
             
@@ -43,41 +56,15 @@ namespace gostGUI
         }
         void initFromConfig()
         {
-            string exeDirPath = (Common.GetApplicationPath());
-            string path = exeDirPath + "/config.json";
-
-            Common.LoadJson(path, out configData);
-
-            if (configData != null)
+            if (_configManager.Items.Count > 0)
             {
-                //textBox1.Text = configData.Program;
                 listBox1.Items.Clear();
-                foreach (var item in configData.Items)
+                foreach (var item in _configManager.Items)
                 { 
-                    listBox1.Items.Add(item.Name);
-
-                    // Create a new textBox_log for each item
-                    TextBox textBoxLog = new TextBox();
-                    textBoxLog.Location = textBox_log.Location;
-                    textBoxLog.Size = textBox_log.Size;
-                    textBoxLog.BackColor = textBox_log.BackColor;
-                    textBoxLog.ForeColor = textBox_log.ForeColor;
-                    textBoxLog.Multiline = true;
-                    textBoxLog.ReadOnly = true;
-                    textBoxLog.ScrollBars = textBox_log.ScrollBars; // Copy scrollbar settings
-                    textBoxLog.WordWrap = textBox_log.WordWrap;   // Copy word wrap settings
-                    textBoxLog.TextAlign = textBox_log.TextAlign;   // Copy text alignment
-                    textBoxLog.BorderStyle = textBox_log.BorderStyle; // Copy border style
-                    textBoxLog.Visible = true; // Initially hide all textBox_log
-                    textBoxLogs[item.Name] = textBoxLog;
-
-                    // Add the textBoxLog to the form (you might need to adjust the location and size)
-                    this.groupBox1.Controls.Add(textBoxLog);
-                    //this.groupBox1.Controls.SetChildIndex(textBoxLog, 0);
+                    // Let the managers handle UI creation
+                    OnConfigItemAdded(item.Name);
                 }
 
-                // old
-                textBox_log.Visible = false;
                 // Select the first item by default
                 if (listBox1.Items.Count > 0)
                 {
@@ -86,17 +73,10 @@ namespace gostGUI
             }
         }
 
-        void saveCfgToFile()
-        {
-            string cfgFile = Common.GetApplicationPath() + "/config.json";
-            Common.SaveToFile(configData, cfgFile);
-        }
-
         private void OnApplicationExit(object sender, EventArgs e)
         {
-            stopAll();
-            // This ensures the job object handle is closed cleanly on normal exit.
-            _jobManager?.Dispose();
+            // The ProcessManager will handle stopping all processes.
+            _processManager?.Dispose();
         }
 
         private string getCurrentItem()
@@ -109,7 +89,7 @@ namespace gostGUI
             }
 
             // Find the selected item in the config data
-            ConfigItem selectedConfigItem = configData.Items.Find(item => item.Name == selectedItemName);
+            ConfigItem selectedConfigItem = _configManager.GetItem(selectedItemName);
             if (selectedConfigItem == null)
             {
                 MessageBox.Show("Selected item not found in the configuration.");
@@ -120,144 +100,56 @@ namespace gostGUI
 
         void start(string selectedItemName)
         {
-            ConfigItem selectedConfigItem = configData.Items.Find(item => item.Name == selectedItemName);
-            if (selectedConfigItem == null)
-            {
-                outputAdd($"!!! Configuration for '{selectedItemName}' not found.", selectedItemName);
-                return;
-            }
-
-            string exeFilePath = selectedConfigItem.Program;
-            string argsstr = selectedConfigItem.Args;
-
-            if (!File.Exists(exeFilePath))
-            {
-                outputAdd("!!! Program file does not exist !!!", selectedItemName);
-                return;
-            }
-
-            // 如果正在运行，就直接返回。 
-            // Stop the existing process if it is running
-            stop(selectedItemName);
-
-            // Create a new process
-            Process p = new Process();
-            p.StartInfo.UseShellExecute = false;
-            p.StartInfo.CreateNoWindow = true;
-            p.StartInfo.WorkingDirectory = Common.GetApplicationPath();
-            p.StartInfo.RedirectStandardInput = false;
-            p.StartInfo.RedirectStandardOutput = true;
-            // Set the encoding for the output streams to handle non-ASCII characters (like Chinese) correctly.
-            p.StartInfo.StandardOutputEncoding = System.Text.Encoding.UTF8;
-            // Pass the selectedItemName to the event handler
-            p.OutputDataReceived += new DataReceivedEventHandler((sender, e) => p_OutputDataReceived(sender, e, selectedItemName));
-            p.StartInfo.RedirectStandardError = true;
-            // Set the encoding for the error streams as well.
-            p.StartInfo.StandardErrorEncoding = System.Text.Encoding.UTF8;
-            // Pass the selectedItemName to the event handler
-            p.ErrorDataReceived += new DataReceivedEventHandler((sender, e) => p_OutputDataReceived(sender, e, selectedItemName));
-            p.EnableRaisingEvents = true;
-            p.Exited += new EventHandler((sender, e) => p_Exit(sender, e, selectedItemName));
-
-            // Set the program and arguments
-            p.StartInfo.FileName = exeFilePath;
-            p.StartInfo.Arguments = argsstr;
-            bool startOK = false;
-            try
-            {
-                startOK = p.Start();
-
-            }
-            catch (Exception ex)
-            {
-                update(ex.Message, selectedItemName);
-            }
-
-            if (startOK)
-            {
-                // Add the new process to the job object to ensure it's terminated if the parent crashes.
-                _jobManager?.AddProcess(p);
-
-                selectedConfigItem.Enable = true;
-                saveCfgToFile();
-
-                outputAdd("run sucess.", selectedItemName);
-                p.BeginOutputReadLine();
-                p.BeginErrorReadLine();
-                if (listBox1.SelectedItem?.ToString() == selectedItemName)
-                {
-                    //button_start.Enabled = false;
-                    //button_stop.Enabled = true;
-                }
-
-                // Store the process in the dictionary
-                processes[selectedItemName] = p;
-                listBox1.Invalidate(); // Redraw listbox to show running icon
-            }
-            else
-            {
-                outputAdd("run failed.", selectedItemName);
-            }
-            outputAdd("---------------------------------------------------------", selectedItemName);
+            ConfigItem configItem = _configManager.GetItem(selectedItemName);
+            _processManager?.StartProcess(configItem);
         }
 
         void stop()
         {
             string selectedItemName = getCurrentItem();
             if (string.IsNullOrEmpty(selectedItemName)) return;
-
-            stop(selectedItemName);
+            _processManager?.StopProcess(selectedItemName);
         }
 
         void stop(string itemName)
         {
-            if (!processes.ContainsKey(itemName))
-            {
-                return;
-            }
-
-            Process p = processes[itemName];
-            if (p == null || p.HasExited)
-            {
-                processes.Remove(itemName);
-                updateStatus(itemName);
-                return;
-            }
-
-            try
-            {
-                p.Kill();
-                p.Close();
-                p.Dispose();
-            }
-            catch (Exception ex)
-            {
-                update(ex.Message, itemName);
-            }
-
-            processes.Remove(itemName);
-            outputAdd("!!! stop program !!!", itemName);
-            listBox1.Invalidate(); // Redraw listbox to show stopped icon
+            _processManager?.StopProcess(itemName);
         }
 
         // 进程结束的事件响应函数
-        private void p_Exit(object sender, System.EventArgs e, string itemName)
+        private void OnProcessExited(string itemName, int exitCode)
         {
-            ConfigItem configItem = configData.Items.Find(item => item.Name == itemName);
+            ConfigItem configItem = _configManager.GetItem(itemName);
             if (configItem != null)
             {
                 configItem.Enable = false;
-                saveCfgToFile();
+                _configManager.UpdateItem(configItem);
             }
 
-            Process p = sender as Process;
-            string exitMessage = $"!!! program exits !!!";
+            string exitMessage = $"!!! program exited with code {exitCode} !!!";
             
             System.Threading.Thread.Sleep(50);// ms
             update(exitMessage + Environment.NewLine, itemName);
             updateStatus(itemName); 
         }
 
+        private void OnProcessStarted(string itemName)
+        {
+            ConfigItem configItem = _configManager.GetItem(itemName);
+            if (configItem != null)
+            {
+                configItem.Enable = true;
+                _configManager.UpdateItem(configItem);
+            }
+            outputAdd("run success.", itemName);
+            outputAdd("---------------------------------------------------------", itemName);
+            updateStatus(itemName);
+        }
+        private void OnProcessStopped(string itemName)
+        {
+            outputAdd("!!! stop program !!!", itemName);
+            updateStatus(itemName);
+        }
         // 刷新界面的显示
         void updateStatus(string itemName)
         {
@@ -279,41 +171,14 @@ namespace gostGUI
             }
         }
 
-        void p_OutputDataReceived(object sender, DataReceivedEventArgs e, string itemName)
+        void OnProcessOutputReceived(string itemName, string data)
         {
-            if (e.Data != null)
-            {
-                update(e.Data + Environment.NewLine, itemName);
-            }
+            update(data, itemName);
         }
 
         void update(string msg, string itemName)
         {
-            if (this.InvokeRequired)
-            {
-                try
-                {
-                    Invoke(new Action(() => update(msg, itemName)));
-                }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine($"Invoke failed in update: {ex.Message}");
-                }
-            }
-            else
-            {
-                if (textBoxLogs.ContainsKey(itemName))
-                {
-                    TextBox textBoxLog = textBoxLogs[itemName];
-                    // Get the current vertical scroll position
-                    textBoxLog.AppendText(msg);
-                    if (textBoxLog.Text.Length > textBoxLog.MaxLength)
-                        textBoxLog.Clear();
-
-                    // Set the vertical scroll position to the bottom
-                    textBoxLog.ScrollToCaret();
-                }
-            }
+            _logViewManager.AppendText(itemName, msg);
         }
 
         
@@ -334,20 +199,12 @@ namespace gostGUI
         }
         private void outputAdd(string str, string itemName)
         {
-            try
-            {
-                textBoxLogs[itemName].AppendText(str);
-                textBoxLogs[itemName].AppendText(Environment.NewLine);
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Failed to add output for item {itemName}: {ex.Message}");
-            }
+            _logViewManager.AppendText(itemName, str + Environment.NewLine);
         }
 
         private void FormMain_FormClosed(object sender, FormClosedEventArgs e)
         {
-            stopAll();
+            _processManager?.Dispose();
         }
 
         private void FormMain_FormClosing(object sender, FormClosingEventArgs e)
@@ -413,15 +270,12 @@ namespace gostGUI
             string selectedItemName = listBox1.SelectedItem?.ToString();
             if (!string.IsNullOrEmpty(selectedItemName))
             {
-                // Find the selected item in the config data
-                ConfigItem selectedConfigItem = configData.Items.Find(item => item.Name == selectedItemName);
+                ConfigItem selectedConfigItem = _configManager.GetItem(selectedItemName);
                 if (selectedConfigItem != null)
                 {
-                    if (selectedConfigItem.Program != path)
+                    if (selectedConfigItem.Program != path) // Only update if changed
                     {
-                        // Update the Program property of the selected item
-                        selectedConfigItem.Program = path;
-                        saveCfgToFile();
+                        _configManager.UpdateItemProgram(selectedItemName, path);
                     }
                 }
             }
@@ -456,10 +310,7 @@ namespace gostGUI
             string selectedItemName = getCurrentItem();
             if (!string.IsNullOrEmpty(selectedItemName))
             {
-                if (textBoxLogs.ContainsKey(selectedItemName))
-                {
-                    textBoxLogs[selectedItemName].Clear();
-                }
+                _logViewManager.ClearLog(selectedItemName);
             }
         }
 
@@ -495,31 +346,8 @@ namespace gostGUI
                     return;
                 }
 
-                if (configData.Items.Exists(item => item.Name == newName))
+                if (_configManager.RenameItem(oldName, newName))
                 {
-                    MessageBox.Show("An item with this name already exists.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    return;
-                }
-
-                ConfigItem itemToRename = configData.Items.Find(item => item.Name == oldName);
-                if (itemToRename != null)
-                {
-                    itemToRename.Name = newName;
-
-                    // Update dictionaries
-                    if (processes.ContainsKey(oldName))
-                    {
-                        processes[newName] = processes[oldName];
-                        processes.Remove(oldName);
-                    }
-                    if (textBoxLogs.ContainsKey(oldName))
-                    {
-                        textBoxLogs[newName] = textBoxLogs[oldName];
-                        textBoxLogs.Remove(oldName);
-                    }
-
-                    listBox1.Items[listBox1.SelectedIndex] = newName;
-                    saveCfgToFile();
                     listbox_txtBox.Visible = false;
                 }
             }
@@ -542,7 +370,7 @@ namespace gostGUI
             string itemName = listBox1.Items[e.Index].ToString();
 
             // Check if the process for this item is running
-            bool isRunning = processes.ContainsKey(itemName) && processes[itemName] != null && !processes[itemName].HasExited;
+            bool isRunning = _processManager.IsProcessRunning(itemName);
 
             // Determine the color for the icon based on the selection state
             Color iconColor;
@@ -651,33 +479,13 @@ namespace gostGUI
                 }
 
                 // Check for duplicates
-                if (configData.Items.Exists(item => item.Name == newName))
+                if (_configManager.RenameItem(oldName, newName))
                 {
-                    MessageBox.Show("An item with this name already exists.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    listbox_txtBox.Focus(); // Keep the textbox focused for correction
-                    return; // Do not hide the textbox
+                    listbox_txtBox.Visible = false; // Success, hide the box
                 }
-
-                // Commit the changes
-                ConfigItem itemToRename = configData.Items.Find(item => item.Name == oldName);
-                if (itemToRename != null)
+                else
                 {
-                    itemToRename.Name = newName;
-
-                    // Update dictionaries
-                    if (processes.ContainsKey(oldName))
-                    {
-                        processes[newName] = processes[oldName];
-                        processes.Remove(oldName);
-                    }
-                    if (textBoxLogs.ContainsKey(oldName))
-                    {
-                        textBoxLogs[newName] = textBoxLogs[oldName];
-                        textBoxLogs.Remove(oldName);
-                    }
-
-                    listBox1.Items[selectedIndex] = newName;
-                    saveCfgToFile();
+                    listbox_txtBox.Focus(); // Keep the textbox focused for correction
                 }
             }
 
@@ -689,44 +497,9 @@ namespace gostGUI
         }
         private void newToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            string newItemName = "new item";
-            int counter = 1;
-            while (configData.Items.Exists(item => item.Name == newItemName))
-            {
-                newItemName = $"new item {counter++}";
-            }
-
-            ConfigItem newItem = new ConfigItem
-            {
-                Name = newItemName,
-                Enable = true,
-                Program = "gost.exe",
-                Args = ""
-            };
-
-            configData.Items.Add(newItem);
-
-            // Create and add a new log textbox for the new item
-            TextBox textBoxLog = new TextBox();
-            textBoxLog.Location = this.textBox_log.Location;
-            textBoxLog.Size = this.textBox_log.Size;
-            textBoxLog.BackColor = this.textBox_log.BackColor;
-            textBoxLog.ForeColor = this.textBox_log.ForeColor;
-            textBoxLog.Multiline = true;
-            textBoxLog.ReadOnly = true;
-            textBoxLog.ScrollBars = this.textBox_log.ScrollBars;
-            textBoxLog.WordWrap = this.textBox_log.WordWrap;
-            textBoxLog.TextAlign = this.textBox_log.TextAlign;
-            textBoxLog.BorderStyle = this.textBox_log.BorderStyle;
-            textBoxLog.Visible = false; // Hide it initially
-            textBoxLogs[newItem.Name] = textBoxLog;
-            this.groupBox1.Controls.Add(textBoxLog);
-
-            saveCfgToFile();
-            listBox1.Items.Add(newItem.Name);
-            listBox1.SelectedItem = newItem.Name; // Select the new item
+            string newItemName = _configManager.AddNewItem();
+            listBox1.SelectedItem = newItemName; // Select the new item
         }
-
 
         private void deleteToolStripMenuItem_Click(object sender, EventArgs e)
         {
@@ -735,11 +508,7 @@ namespace gostGUI
 
             string itemText = listBox1.Items[itemSelected].ToString();
             stop(itemText); // Stop the process if it's running
-            configData.Items.RemoveAll(item => item.Name == itemText);
-            this.groupBox1.Controls.Remove(textBoxLogs[itemText]);
-            textBoxLogs.Remove(itemText);
-            saveCfgToFile();
-            listBox1.Items.Remove(itemText);
+            _configManager.DeleteItem(itemText);
         }
 
         private void listBox1_SelectedIndexChanged(object sender, EventArgs e)
@@ -749,7 +518,7 @@ namespace gostGUI
                 string selectedItemName = listBox1.SelectedItem.ToString();
 
                 // Find the selected item in the config data
-                ConfigItem selectedConfigItem = configData.Items.Find(item => item.Name == selectedItemName);
+                ConfigItem selectedConfigItem = _configManager.GetItem(selectedItemName);
 
                 if (selectedConfigItem != null)
                 {
@@ -757,18 +526,8 @@ namespace gostGUI
                     textBox1.Text = selectedConfigItem.Program;
                     textBox_Arg.Text = selectedConfigItem.Args;
 
-                    // 检查所选进程的运行状态，与 listBox1_DrawItem 中的逻辑保持一致
-                    //bool isRunning = processes.ContainsKey(selectedItemName) && processes[selectedItemName] != null && !processes[selectedItemName].HasExited;
-
-                    // 更新按钮状态以反映所选项的真实状态
-                    //button_start.Enabled = !isRunning;
-                    //button_stop.Enabled = isRunning;
-
                     // Show the selected textBox_log and hide others
-                    foreach (var entry in textBoxLogs)
-                    {
-                        entry.Value.Visible = (entry.Key == selectedItemName);
-                    }
+                    _logViewManager.ShowLogView(selectedItemName);
                 }
             }
         }
@@ -783,24 +542,56 @@ namespace gostGUI
             if (listBox1.SelectedItem != null)
             {
                 string selectedItemName = listBox1.SelectedItem.ToString();
-                ConfigItem selectedConfigItem = configData.Items.Find(item => item.Name == selectedItemName);
+                ConfigItem selectedConfigItem = _configManager.GetItem(selectedItemName);
                 if (selectedConfigItem != null && selectedConfigItem.Args != textBox_Arg.Text)
                 {
                     selectedConfigItem.Args = textBox_Arg.Text; 
-                    saveCfgToFile();
+                    _configManager.UpdateItem(selectedConfigItem);
                 }
             }
         }
 
+        #region ConfigurationManager Event Handlers
+
+        private void OnConfigItemAdded(string itemName)
+        {
+            _logViewManager.AddLogView(itemName);
+            listBox1.Items.Add(itemName);
+        }
+
+        private void OnConfigItemRenamed(string oldName, string newName)
+        {
+            _logViewManager.RenameLogView(oldName, newName);
+
+            int index = listBox1.Items.IndexOf(oldName);
+            if (index != -1)
+            {
+                listBox1.Items[index] = newName;
+            }
+        }
+
+        private void OnConfigItemDeleted(string itemName)
+        {
+            _logViewManager.RemoveLogView(itemName);
+            listBox1.Items.Remove(itemName);
+        }
+
+        private void OnConfigItemUpdated(ConfigItem item)
+        {
+            // This event can be used to refresh specific UI parts if needed in the future.
+            // For now, most updates are handled directly.
+        }
+
+        #endregion
         private void button_Exit_Click(object sender, EventArgs e)
         {
             exitToolStripMenuItem_Click(sender, e);
         }
         private void startAll()
         {
-            foreach (ConfigItem item in configData.Items)
+            foreach (ConfigItem item in _configManager.Items)
             {
-                if (item.Enable && (!processes.ContainsKey(item.Name) || (processes.ContainsKey(item.Name) && processes[item.Name].HasExited)))
+                if (item.Enable && !_processManager.IsProcessRunning(item.Name))
                 {
                     start(item.Name);
                 }
@@ -813,11 +604,7 @@ namespace gostGUI
 
         private void stopAll()
         {
-            List<string> runningItems = new List<string>(processes.Keys);
-            foreach (string itemName in runningItems)
-            {
-                stop(itemName);
-            }
+            _processManager?.StopAllProcesses();
         }
 
         private void button_stopAll_Click(object sender, EventArgs e)
@@ -827,9 +614,9 @@ namespace gostGUI
 
         private void checkAutoStartStatus()
         {
-            RegistryKey rkApp = Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true);
+            RegistryKey rkApp = Registry.CurrentUser.OpenSubKey(RunRegistryPath, false);
 
-            Object obj = rkApp.GetValue("gostGUI");
+            Object obj = rkApp?.GetValue(AppRegistryKey);
             if (obj == null)
                 return;
 
@@ -844,23 +631,30 @@ namespace gostGUI
             {
                 checkBox1_autostart.Checked = true;
             }
-
+            rkApp.Close();
         }
   
         private void checkBox1_autostart_Click(object sender, EventArgs e)
         {
-            RegistryKey rkApp = Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true);
-
-            if (checkBox1_autostart.Checked)
+            try
             {
-                rkApp.SetValue("gostGUI", Application.ExecutablePath.ToString());
-                MessageBox.Show("active auto start sucess.");
+                using (RegistryKey rkApp = Registry.CurrentUser.OpenSubKey(RunRegistryPath, true))
+                {
+                    if (checkBox1_autostart.Checked)
+                    {
+                        rkApp.SetValue(AppRegistryKey, Application.ExecutablePath);
+                        MessageBox.Show("Auto-start enabled successfully.", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
+                    else
+                    {
+                        rkApp.DeleteValue(AppRegistryKey, false);
+                        MessageBox.Show("Auto-start disabled.", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
+                }
             }
-            else
+            catch (Exception ex)
             {
-                // no auto start
-                rkApp.DeleteValue("gostGUI", false);
-                MessageBox.Show("disable auto start.");
+                MessageBox.Show("Failed to update auto-start setting: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
     }
