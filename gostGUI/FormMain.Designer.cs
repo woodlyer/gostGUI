@@ -1,4 +1,4 @@
-﻿﻿namespace gostGUI
+﻿﻿﻿﻿namespace gostGUI
 {
     partial class FormMain
     {
@@ -53,6 +53,8 @@
             this.button_StartAll = new System.Windows.Forms.Button();
             this.button_Exit = new System.Windows.Forms.Button();
             this.listBox1 = new System.Windows.Forms.ListBox();
+            this.startToolStripMenuItem_listbox = new System.Windows.Forms.ToolStripMenuItem();
+            this.stopToolStripMenuItem_listbox = new System.Windows.Forms.ToolStripMenuItem();
             this.contextMenuStrip_listbox = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.activeToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.editToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -234,16 +236,32 @@
             this.listBox1.DrawItem += new System.Windows.Forms.DrawItemEventHandler(this.listBox1_DrawItem);
             this.listBox1.SelectedIndexChanged += new System.EventHandler(this.listBox1_SelectedIndexChanged);
             this.listBox1.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(this.listBox1_DoubleClick);
+            this.listBox1.MouseDown += new System.Windows.Forms.MouseEventHandler(this.listBox1_MouseDown);
+            // 
+            // startToolStripMenuItem_listbox
+            // 
+            this.startToolStripMenuItem_listbox.Name = "startToolStripMenuItem_listbox";
+            resources.ApplyResources(this.startToolStripMenuItem_listbox, "startToolStripMenuItem_listbox");
+            this.startToolStripMenuItem_listbox.Click += new System.EventHandler(this.startToolStripMenuItem_listbox_Click);
+            // 
+            // stopToolStripMenuItem_listbox
+            // 
+            this.stopToolStripMenuItem_listbox.Name = "stopToolStripMenuItem_listbox";
+            resources.ApplyResources(this.stopToolStripMenuItem_listbox, "stopToolStripMenuItem_listbox");
+            this.stopToolStripMenuItem_listbox.Click += new System.EventHandler(this.stopToolStripMenuItem_listbox_Click);
             // 
             // contextMenuStrip_listbox
             // 
             this.contextMenuStrip_listbox.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.startToolStripMenuItem_listbox,
+            this.stopToolStripMenuItem_listbox,
             this.activeToolStripMenuItem,
             this.editToolStripMenuItem,
             this.newToolStripMenuItem,
             this.deleteToolStripMenuItem});
             this.contextMenuStrip_listbox.Name = "contextMenuStrip_listbox";
             resources.ApplyResources(this.contextMenuStrip_listbox, "contextMenuStrip_listbox");
+            this.contextMenuStrip_listbox.Opening += new System.ComponentModel.CancelEventHandler(this.contextMenuStrip_listbox_Opening);
             // 
             // activeToolStripMenuItem
             // 
@@ -332,5 +350,7 @@
         private System.Windows.Forms.CheckBox checkBox1_autostart;
         private System.Windows.Forms.Button button_stopAll;
         private System.Windows.Forms.Button button_StartAll;
+        private System.Windows.Forms.ToolStripMenuItem startToolStripMenuItem_listbox;
+        private System.Windows.Forms.ToolStripMenuItem stopToolStripMenuItem_listbox;
     }
 }

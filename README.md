@@ -45,6 +45,7 @@ Just  run silently in the background.
 
 
 ### Change log
+- **v1.6**: Click listbox to start/stop program.
 - **v1.5**: Implemented robust multi-process management and automatic child-process cleanup on exit. Revamped UI with custom-drawn status icons and improved in-place editing. (Thanks to Gemini Code Assist).
 - **v1.2**: Added "Run on system startup" functionality.
 - **v0.1**: Initial release with support for multiple argument configurations.

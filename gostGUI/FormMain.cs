@@ -46,13 +46,15 @@ namespace gostGUI
 
 
             initFromConfig();
-            checkAutoStartStatus();
             
             this.textBox1.Leave += new System.EventHandler(this.textBox1_Leave);
             this.textBox_Arg.Leave += new System.EventHandler(this.textBox_Arg_Leave);
             Application.ApplicationExit += new EventHandler(this.OnApplicationExit);
+            this.listBox1.MouseDown += new System.Windows.Forms.MouseEventHandler(this.listBox1_MouseDown);
             listbox_txtBox.Leave += new System.EventHandler(this.listbox_txtBox_Leave);
             listbox_txtBox.KeyDown += new KeyEventHandler(listbox_txtBox_KeyDown);
+            checkAutoStartStatus();
+            startAll();
         }
         void initFromConfig()
         {
@@ -416,30 +418,57 @@ namespace gostGUI
 
         private void listBox1_DoubleClick(object sender, EventArgs e)
         {
-            int itemSelected = listBox1.SelectedIndex;
-            string itemText = listBox1.Items[itemSelected].ToString();
+            int index = listBox1.SelectedIndex;
+            if (index != ListBox.NoMatches)
+            {
+                string itemName = listBox1.Items[index].ToString();
+                bool isRunning = _processManager.IsProcessRunning(itemName);
 
-            Rectangle rect = listBox1.GetItemRectangle(itemSelected);
-            listbox_txtBox.Parent = listBox1;
-            rect.Height += 5;
-            listbox_txtBox.Bounds = rect;
-
-            listbox_txtBox.Multiline = true;
-            listbox_txtBox.Visible = true;
-            listbox_txtBox.Text = itemText;
-            listbox_txtBox.Focus();
-            listbox_txtBox.SelectAll();
+                // Toggle start/stop
+                if (isRunning) stop(itemName); else start(itemName);
+            }
         }
 
         private void listBox1_MouseClick(object sender, MouseEventArgs e)
         {
-            // This method used to hide the edit box, effectively cancelling the edit.
-            // Now, the Leave event of the textbox handles committing the changes,
-            // so this method is no longer needed for that purpose.
-            // A single click on the listbox will cause the textbox to lose focus,
-            // which correctly triggers the Leave event.
+            if (e.Button != MouseButtons.Left)
+            {
+                return;
+            }
+
+            int index = listBox1.IndexFromPoint(e.Location);
+            if (index != ListBox.NoMatches)
+            {
+                Rectangle itemBounds = listBox1.GetItemRectangle(index);
+                
+                // Recreate the icon rectangle logic from the DrawItem event
+                int iconSize = 10;
+                int iconMargin = 4;
+                Rectangle iconRect = new Rectangle(itemBounds.Left + iconMargin, itemBounds.Top + (itemBounds.Height - iconSize) / 2, iconSize, iconSize);
+
+                // Check if the click was inside the icon's bounds
+                if (iconRect.Contains(e.Location))
+                {
+                    string itemName = listBox1.Items[index].ToString();
+                    bool isRunning = _processManager.IsProcessRunning(itemName);
+
+                    // Toggle start/stop
+                    if (isRunning) stop(itemName); else start(itemName);
+                }
+            }
         }
 
+        private void listBox1_MouseDown(object sender, MouseEventArgs e)
+        {
+            if (e.Button == MouseButtons.Right)
+            {
+                int index = listBox1.IndexFromPoint(e.Location);
+                if (index != ListBox.NoMatches)
+                {
+                    listBox1.SelectedIndex = index;
+                }
+            }
+        }
 
         private void selectToolStripMenuItem_Click(object sender, EventArgs e)
         {
@@ -493,7 +522,22 @@ namespace gostGUI
         }
         private void editToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            listBox1_DoubleClick(sender, e);
+            int itemSelected = listBox1.SelectedIndex;
+            if (itemSelected < 0)
+            {
+                return;
+            }
+            string itemText = listBox1.Items[itemSelected].ToString();
+
+            Rectangle rect = listBox1.GetItemRectangle(itemSelected);
+            listbox_txtBox.Parent = listBox1;
+            listbox_txtBox.Bounds = rect;
+
+            listbox_txtBox.Multiline = false; // A single line is enough for the name
+            listbox_txtBox.Visible = true;
+            listbox_txtBox.Text = itemText;
+            listbox_txtBox.Focus();
+            listbox_txtBox.SelectAll();
         }
         private void newToolStripMenuItem_Click(object sender, EventArgs e)
         {
@@ -551,6 +595,36 @@ namespace gostGUI
             }
         }
 
+        private void contextMenuStrip_listbox_Opening(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            if (listBox1.SelectedItem == null)
+            {
+                e.Cancel = true;
+                return;
+            }
+
+            string selectedItemName = listBox1.SelectedItem.ToString();
+            bool isRunning = _processManager.IsProcessRunning(selectedItemName);
+
+            startToolStripMenuItem_listbox.Enabled = !isRunning;
+            stopToolStripMenuItem_listbox.Enabled = isRunning;
+        }
+
+        private void startToolStripMenuItem_listbox_Click(object sender, EventArgs e)
+        {
+            if (listBox1.SelectedItem != null)
+            {
+                start(listBox1.SelectedItem.ToString());
+            }
+        }
+
+        private void stopToolStripMenuItem_listbox_Click(object sender, EventArgs e)
+        {
+            if (listBox1.SelectedItem != null)
+            {
+                stop(listBox1.SelectedItem.ToString());
+            }
+        }
         #region ConfigurationManager Event Handlers
 
         private void OnConfigItemAdded(string itemName)

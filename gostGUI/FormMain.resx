@@ -637,8 +637,47 @@
   <data name="&gt;&gt;contextMenuStrip_listbox.Type" xml:space="preserve">
     <value>System.Windows.Forms.ContextMenuStrip, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
+  <data name="startToolStripMenuItem_listbox.Size" type="System.Drawing.Size, System.Drawing">
+    <value>117, 24</value>
+  </data>
+  <data name="startToolStripMenuItem_listbox.Text" xml:space="preserve">
+    <value>Start</value>
+  </data>
+  <data name="&gt;&gt;startToolStripMenuItem_listbox.Name" xml:space="preserve">
+    <value>startToolStripMenuItem_listbox</value>
+  </data>
+  <data name="&gt;&gt;startToolStripMenuItem_listbox.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;startToolStripMenuItem_listbox.Parent" xml:space="preserve">
+    <value>contextMenuStrip_listbox</value>
+  </data>
+  <data name="&gt;&gt;startToolStripMenuItem_listbox.ZOrder" xml:space="preserve">
+    <value>0</value>
+  </data>
+  <data name="stopToolStripMenuItem_listbox.Size" type="System.Drawing.Size, System.Drawing">
+    <value>117, 24</value>
+  </data>
+  <data name="stopToolStripMenuItem_listbox.Text" xml:space="preserve">
+    <value>Stop</value>
+  </data>
+  <data name="&gt;&gt;stopToolStripMenuItem_listbox.Name" xml:space="preserve">
+    <value>stopToolStripMenuItem_listbox</value>
+  </data>
+  <data name="&gt;&gt;stopToolStripMenuItem_listbox.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;stopToolStripMenuItem_listbox.Parent" xml:space="preserve">
+    <value>contextMenuStrip_listbox</value>
+  </data>
+  <data name="&gt;&gt;stopToolStripMenuItem_listbox.ZOrder" xml:space="preserve">
+    <value>1</value>
+  </data>
+  <data name="listBox1.Font" type="System.Drawing.Font, System.Drawing">
+    <value>Microsoft YaHei UI, 10.5pt</value>
+  </data>
   <data name="listBox1.ItemHeight" type="System.Int32, mscorlib">
-    <value>12</value>
+    <value>28</value>
   </data>
   <data name="listBox1.Items" xml:space="preserve">
     <value>123</value>
@@ -715,6 +754,18 @@
   <data name="&gt;&gt;groupBox3.Parent" xml:space="preserve">
     <value>$this</value>
   </data>
+  <data name="&gt;&gt;activeToolStripMenuItem.Parent" xml:space="preserve">
+    <value>contextMenuStrip_listbox</value>
+  </data>
+  <data name="&gt;&gt;activeToolStripMenuItem.ZOrder" xml:space="preserve">
+    <value>2</value>
+  </data>
+  <data name="&gt;&gt;editToolStripMenuItem.Parent" xml:space="preserve">
+    <value>contextMenuStrip_listbox</value>
+  </data>
+  <data name="&gt;&gt;editToolStripMenuItem.ZOrder" xml:space="preserve">
+    <value>3</value>
+  </data>
   <data name="&gt;&gt;groupBox3.ZOrder" xml:space="preserve">
     <value>2</value>
   </data>
@@ -780,7 +831,7 @@
     <value>CenterScreen</value>
   </data>
   <data name="$this.Text" xml:space="preserve">
-    <value>gostGUI v1.5</value>
+    <value>gostGUI v1.6</value>
   </data>
   <data name="&gt;&gt;notifyIcon1.Name" xml:space="preserve">
     <value>notifyIcon1</value>
@@ -835,6 +886,18 @@
   </data>
   <data name="&gt;&gt;deleteToolStripMenuItem.Type" xml:space="preserve">
     <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;deleteToolStripMenuItem.Parent" xml:space="preserve">
+    <value>contextMenuStrip_listbox</value>
+  </data>
+  <data name="&gt;&gt;deleteToolStripMenuItem.ZOrder" xml:space="preserve">
+    <value>5</value>
+  </data>
+  <data name="&gt;&gt;newToolStripMenuItem.Parent" xml:space="preserve">
+    <value>contextMenuStrip_listbox</value>
+  </data>
+  <data name="&gt;&gt;newToolStripMenuItem.ZOrder" xml:space="preserve">
+    <value>4</value>
   </data>
   <data name="&gt;&gt;$this.Name" xml:space="preserve">
     <value>FormMain</value>
