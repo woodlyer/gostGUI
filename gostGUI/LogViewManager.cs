@@ -97,6 +97,13 @@ namespace gostGUI
 
         private void AppendTextInternal(TextBox textBox, string text)
         {
+			int currentLineCount = textBox.Lines.Length;
+			if (currentLineCount > 500)
+			{
+				// 超过 500 行，清空全部内容
+				textBox.Text = string.Empty;
+			}
+			
             textBox.AppendText(text);
             textBox.ScrollToCaret();
         }
