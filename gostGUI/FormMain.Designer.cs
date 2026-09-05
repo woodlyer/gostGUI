@@ -1,4 +1,4 @@
-﻿﻿﻿﻿namespace gostGUI
+﻿﻿namespace gostGUI
 {
     partial class FormMain
     {
@@ -101,6 +101,7 @@
             // 
             resources.ApplyResources(this.notifyIcon1, "notifyIcon1");
             this.notifyIcon1.MouseClick += new System.Windows.Forms.MouseEventHandler(this.notifyIcon1_MouseClick);
+            this.notifyIcon1.DoubleClick += new System.EventHandler(this.notifyIcon1_DoubleClick);
             // 
             // contextMenuStrip1
             // 
@@ -227,10 +228,6 @@
             this.listBox1.DrawMode = System.Windows.Forms.DrawMode.OwnerDrawFixed;
             this.listBox1.FormattingEnabled = true;
             resources.ApplyResources(this.listBox1, "listBox1");
-            this.listBox1.Items.AddRange(new object[] {
-            resources.GetString("listBox1.Items"),
-            resources.GetString("listBox1.Items1"),
-            resources.GetString("listBox1.Items2")});
             this.listBox1.Name = "listBox1";
             this.listBox1.MouseClick += new System.Windows.Forms.MouseEventHandler(this.listBox1_MouseClick);
             this.listBox1.DrawItem += new System.Windows.Forms.DrawItemEventHandler(this.listBox1_DrawItem);

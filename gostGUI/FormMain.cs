@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
@@ -58,9 +58,9 @@ namespace gostGUI
         }
         void initFromConfig()
         {
+            listBox1.Items.Clear();
             if (_configManager.Items.Count > 0)
             {
-                listBox1.Items.Clear();
                 foreach (var item in _configManager.Items)
                 { 
                     // Let the managers handle UI creation
@@ -149,6 +149,12 @@ namespace gostGUI
         }
         private void OnProcessStopped(string itemName)
         {
+            ConfigItem configItem = _configManager.GetItem(itemName);
+            if (configItem != null)
+            {
+                configItem.Enable = false;
+                _configManager.UpdateItem(configItem);
+            }
             outputAdd("!!! stop program !!!", itemName);
             updateStatus(itemName);
         }
@@ -219,6 +225,34 @@ namespace gostGUI
             }
         }
 
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern bool SetForegroundWindow(IntPtr hWnd);
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern bool ShowWindowAsync(IntPtr hWnd, int nCmdShow);
+
+        private const int SW_RESTORE = 9;
+
+        private void RestoreAndBringToFront()
+        {
+            if (!this.Visible)
+            {
+                this.Visible = true;
+            }
+
+            this.ShowInTaskbar = true;
+
+            if (this.WindowState == FormWindowState.Minimized)
+            {
+                this.WindowState = FormWindowState.Normal;
+            }
+
+            ShowWindowAsync(this.Handle, SW_RESTORE);
+            this.Activate();
+            this.BringToFront();
+            SetForegroundWindow(this.Handle);
+        }
+
         private void notifyIcon1_MouseClick(object sender, MouseEventArgs e)
         {
             if (e.Button == MouseButtons.Right)
@@ -229,10 +263,13 @@ namespace gostGUI
 
             if (e.Button == MouseButtons.Left)
             {
-                this.Visible = true;
-                this.WindowState = FormWindowState.Normal;
-                this.ShowInTaskbar = true;
+                RestoreAndBringToFront();
             }
+        }
+
+        private void notifyIcon1_DoubleClick(object sender, EventArgs e)
+        {
+            RestoreAndBringToFront();
         }
 
 
@@ -318,7 +355,7 @@ namespace gostGUI
 
         private void startToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            startAll();
+            startAll(true);
         }
 
         private void stopToolStripMenuItem_Click(object sender, EventArgs e)
@@ -480,29 +517,26 @@ namespace gostGUI
             // Commit changes when the textbox loses focus.
             EndListBoxEdit(true);
         }
+        private string _currentEditingItemName = null;
+
         private void EndListBoxEdit(bool commitChanges)
         {
             // If the textbox is not visible, there is nothing to do.
             if (!listbox_txtBox.Visible)
             {
+                _currentEditingItemName = null;
                 return;
             }
 
-            if (commitChanges)
+            if (commitChanges && !string.IsNullOrEmpty(_currentEditingItemName))
             {
-                int selectedIndex = listBox1.SelectedIndex;
-                if (selectedIndex < 0)
-                {
-                    listbox_txtBox.Visible = false;
-                    return;
-                }
-
-                string oldName = listBox1.Items[selectedIndex].ToString();
+                string oldName = _currentEditingItemName;
                 string newName = listbox_txtBox.Text.Trim();
 
                 // If name is unchanged or empty, just hide the textbox.
                 if (string.IsNullOrEmpty(newName) || newName == oldName)
                 {
+                    _currentEditingItemName = null;
                     listbox_txtBox.Visible = false;
                     return;
                 }
@@ -510,43 +544,56 @@ namespace gostGUI
                 // Check for duplicates
                 if (_configManager.RenameItem(oldName, newName))
                 {
+                    _currentEditingItemName = null;
                     listbox_txtBox.Visible = false; // Success, hide the box
+                    return;
                 }
                 else
                 {
                     listbox_txtBox.Focus(); // Keep the textbox focused for correction
+                    return;
                 }
             }
 
+            _currentEditingItemName = null;
             listbox_txtBox.Visible = false;
         }
         private void editToolStripMenuItem_Click(object sender, EventArgs e)
         {
             int itemSelected = listBox1.SelectedIndex;
-            if (itemSelected < 0)
+            if (itemSelected < 0 || itemSelected >= listBox1.Items.Count)
             {
                 return;
             }
             string itemText = listBox1.Items[itemSelected].ToString();
+
+            if (_processManager.IsProcessRunning(itemText))
+            {
+                MessageBox.Show("Please stop the process before renaming it.", "Information", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
 
             Rectangle rect = listBox1.GetItemRectangle(itemSelected);
             listbox_txtBox.Parent = listBox1;
             listbox_txtBox.Bounds = rect;
 
             listbox_txtBox.Multiline = false; // A single line is enough for the name
-            listbox_txtBox.Visible = true;
+            _currentEditingItemName = itemText;
             listbox_txtBox.Text = itemText;
+            listbox_txtBox.Visible = true;
             listbox_txtBox.Focus();
             listbox_txtBox.SelectAll();
         }
         private void newToolStripMenuItem_Click(object sender, EventArgs e)
         {
+            EndListBoxEdit(false);
             string newItemName = _configManager.AddNewItem();
             listBox1.SelectedItem = newItemName; // Select the new item
         }
 
         private void deleteToolStripMenuItem_Click(object sender, EventArgs e)
         {
+            EndListBoxEdit(false);
             int itemSelected = listBox1.SelectedIndex;
             if (itemSelected < 0) return;
 
@@ -567,12 +614,22 @@ namespace gostGUI
                 if (selectedConfigItem != null)
                 {
                     // Update the textboxes with the selected item's data
-                    textBox1.Text = selectedConfigItem.Program;
-                    textBox_Arg.Text = selectedConfigItem.Args;
+                    textBox1.Text = selectedConfigItem.Program ?? "";
+                    textBox_Arg.Text = selectedConfigItem.Args ?? "";
 
                     // Show the selected textBox_log and hide others
                     _logViewManager.ShowLogView(selectedItemName);
                 }
+                else
+                {
+                    textBox1.Text = "";
+                    textBox_Arg.Text = "";
+                }
+            }
+            else
+            {
+                textBox1.Text = "";
+                textBox_Arg.Text = "";
             }
         }
 
@@ -597,17 +654,27 @@ namespace gostGUI
 
         private void contextMenuStrip_listbox_Opening(object sender, System.ComponentModel.CancelEventArgs e)
         {
-            if (listBox1.SelectedItem == null)
+            EndListBoxEdit(false);
+            bool hasItems = listBox1.Items.Count > 0;
+            bool hasSelection = listBox1.SelectedItem != null;
+
+            // "New" is always available
+            newToolStripMenuItem.Enabled = true;
+
+            // Items that require a selected item
+            startToolStripMenuItem_listbox.Enabled = hasSelection;
+            stopToolStripMenuItem_listbox.Enabled = hasSelection;
+            activeToolStripMenuItem.Enabled = hasSelection;
+            editToolStripMenuItem.Enabled = hasSelection;
+            deleteToolStripMenuItem.Enabled = hasSelection;
+
+            if (hasSelection)
             {
-                e.Cancel = true;
-                return;
+                string selectedItemName = listBox1.SelectedItem.ToString();
+                bool isRunning = _processManager.IsProcessRunning(selectedItemName);
+                startToolStripMenuItem_listbox.Enabled = !isRunning;
+                stopToolStripMenuItem_listbox.Enabled = isRunning;
             }
-
-            string selectedItemName = listBox1.SelectedItem.ToString();
-            bool isRunning = _processManager.IsProcessRunning(selectedItemName);
-
-            startToolStripMenuItem_listbox.Enabled = !isRunning;
-            stopToolStripMenuItem_listbox.Enabled = isRunning;
         }
 
         private void startToolStripMenuItem_listbox_Click(object sender, EventArgs e)
@@ -641,6 +708,7 @@ namespace gostGUI
             if (index != -1)
             {
                 listBox1.Items[index] = newName;
+                listBox1.SelectedIndex = index;
             }
         }
 
@@ -648,6 +716,19 @@ namespace gostGUI
         {
             _logViewManager.RemoveLogView(itemName);
             listBox1.Items.Remove(itemName);
+
+            if (listBox1.Items.Count > 0)
+            {
+                if (listBox1.SelectedIndex < 0)
+                {
+                    listBox1.SelectedIndex = 0;
+                }
+            }
+            else
+            {
+                textBox1.Text = "";
+                textBox_Arg.Text = "";
+            }
         }
 
         private void OnConfigItemUpdated(ConfigItem item)
@@ -661,10 +742,19 @@ namespace gostGUI
         {
             exitToolStripMenuItem_Click(sender, e);
         }
-        private void startAll()
+        private void startAll(bool startAllItems = false)
         {
             foreach (ConfigItem item in _configManager.Items)
             {
+                if (startAllItems)
+                {
+                    if (!item.Enable)
+                    {
+                        item.Enable = true;
+                        _configManager.UpdateItem(item);
+                    }
+                }
+
                 if (item.Enable && !_processManager.IsProcessRunning(item.Name))
                 {
                     start(item.Name);
@@ -673,11 +763,19 @@ namespace gostGUI
         }
         private void button_StartAll_Click(object sender, EventArgs e)
         {
-            startAll();
+            startAll(true);
         }
 
         private void stopAll()
         {
+            foreach (ConfigItem item in _configManager.Items)
+            {
+                if (item.Enable)
+                {
+                    item.Enable = false;
+                    _configManager.UpdateItem(item);
+                }
+            }
             _processManager?.StopAllProcesses();
         }
 
