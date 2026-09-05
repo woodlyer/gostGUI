@@ -77,6 +77,7 @@ namespace gostGUI
 
         private void OnApplicationExit(object sender, EventArgs e)
         {
+            _isExiting = true;
             // The ProcessManager will handle stopping all processes.
             _processManager?.Dispose();
         }
@@ -118,14 +119,19 @@ namespace gostGUI
             _processManager?.StopProcess(itemName);
         }
 
+        private bool _isExiting = false;
+
         // 进程结束的事件响应函数
         private void OnProcessExited(string itemName, int exitCode)
         {
-            ConfigItem configItem = _configManager.GetItem(itemName);
-            if (configItem != null)
+            if (!_isExiting)
             {
-                configItem.Enable = false;
-                _configManager.UpdateItem(configItem);
+                ConfigItem configItem = _configManager.GetItem(itemName);
+                if (configItem != null)
+                {
+                    configItem.Enable = false;
+                    _configManager.UpdateItem(configItem);
+                }
             }
 
             string exitMessage = $"!!! program exited with code {exitCode} !!!";
@@ -149,11 +155,14 @@ namespace gostGUI
         }
         private void OnProcessStopped(string itemName)
         {
-            ConfigItem configItem = _configManager.GetItem(itemName);
-            if (configItem != null)
+            if (!_isExiting)
             {
-                configItem.Enable = false;
-                _configManager.UpdateItem(configItem);
+                ConfigItem configItem = _configManager.GetItem(itemName);
+                if (configItem != null)
+                {
+                    configItem.Enable = false;
+                    _configManager.UpdateItem(configItem);
+                }
             }
             outputAdd("!!! stop program !!!", itemName);
             updateStatus(itemName);
@@ -212,6 +221,7 @@ namespace gostGUI
 
         private void FormMain_FormClosed(object sender, FormClosedEventArgs e)
         {
+            _isExiting = true;
             _processManager?.Dispose();
         }
 
@@ -365,7 +375,8 @@ namespace gostGUI
 
         private void exitToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            stopAll();
+            _isExiting = true;
+            _processManager?.StopAllProcesses();
             notifyIcon1.Dispose();
             // 整个程序退出
             Application.Exit();
