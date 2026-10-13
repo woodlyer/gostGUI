@@ -1,4 +1,4 @@
-﻿﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text.Encodings.Web;
@@ -20,6 +20,11 @@ public class ConfigItem
 
     [JsonPropertyName("args")]
     public string Args { get; set; }
+
+    public override string ToString()
+    {
+        return Name ?? string.Empty;
+    }
 }
 
 
@@ -71,21 +76,26 @@ public class Common
         }
     }
 
+    private static readonly object _saveLock = new object();
+
     public static void SaveToFile(ConfigData configData, string filePath)
     {
-        try
+        lock (_saveLock)
         {
-            var options = new JsonSerializerOptions
+            try
             {
-                Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
-                WriteIndented = true
-            };
-            string jsonString = JsonSerializer.Serialize(configData, options);
-            File.WriteAllText(filePath, jsonString);
-        }
-        catch (Exception ex)
-        {
-            System.Windows.Forms.MessageBox.Show("Error saving to file: " + ex.Message, "Error", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
+                var options = new JsonSerializerOptions
+                {
+                    Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+                    WriteIndented = true
+                };
+                string jsonString = JsonSerializer.Serialize(configData, options);
+                File.WriteAllText(filePath, jsonString);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("Error saving config file: " + ex.Message);
+            }
         }
     }
 }

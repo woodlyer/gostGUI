@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Windows.Forms;
@@ -10,7 +10,7 @@ namespace gostGUI
     /// </summary>
     public class LogViewManager
     {
-        private readonly Dictionary<string, TextBox> _logTextBoxes = new Dictionary<string, TextBox>();
+        private readonly Dictionary<ConfigItem, TextBox> _logTextBoxes = new Dictionary<ConfigItem, TextBox>();
         private readonly Control _parentControl;
         private readonly TextBox _templateTextBox;
 
@@ -23,9 +23,9 @@ namespace gostGUI
             _templateTextBox.Visible = false;
         }
 
-        public void AddLogView(string itemName)
+        public void AddLogView(ConfigItem item)
         {
-            if (_logTextBoxes.ContainsKey(itemName)) return;
+            if (item == null || _logTextBoxes.ContainsKey(item)) return;
 
             var textBoxLog = new TextBox
             {
@@ -42,50 +42,53 @@ namespace gostGUI
                 Visible = false // Initially hidden
             };
 
-            _logTextBoxes[itemName] = textBoxLog;
+            _logTextBoxes[item] = textBoxLog;
             _parentControl.Controls.Add(textBoxLog);
         }
 
-        public void RemoveLogView(string itemName)
+        public void RemoveLogView(ConfigItem item)
         {
-            if (_logTextBoxes.TryGetValue(itemName, out TextBox textBox))
+            if (item != null && _logTextBoxes.TryGetValue(item, out TextBox textBox))
             {
                 _parentControl.Controls.Remove(textBox);
-                _logTextBoxes.Remove(itemName);
+                _logTextBoxes.Remove(item);
                 textBox.Dispose();
             }
         }
 
-        public void RenameLogView(string oldName, string newName)
-        {
-            if (_logTextBoxes.TryGetValue(oldName, out TextBox textBox))
-            {
-                _logTextBoxes[newName] = textBox;
-                _logTextBoxes.Remove(oldName);
-            }
-        }
-
-        public void ShowLogView(string itemName)
+        public void ShowLogView(ConfigItem item)
         {
             foreach (var entry in _logTextBoxes)
             {
-                entry.Value.Visible = (entry.Key == itemName);
+                entry.Value.Visible = (entry.Key == item);
             }
         }
 
-        public void AppendText(string itemName, string text)
+        [System.Runtime.InteropServices.DllImport("user32.dll", EntryPoint = "SendMessage")]
+        private static extern int SendMessage(IntPtr hWnd, int Msg, int wParam, int lParam);
+        private const int EM_GETLINECOUNT = 0x00BA;
+
+        public void AppendText(ConfigItem item, string text)
         {
-            if (_logTextBoxes.TryGetValue(itemName, out TextBox textBox))
+            if (item != null && _logTextBoxes.TryGetValue(item, out TextBox textBox))
             {
+                if (textBox.IsDisposed) return;
+
                 if (textBox.InvokeRequired)
                 {
                     try
                     {
-                        textBox.Invoke(new Action(() => AppendTextInternal(textBox, text)));
+                        textBox.BeginInvoke(new Action(() =>
+                        {
+                            if (!textBox.IsDisposed && textBox.IsHandleCreated)
+                            {
+                                AppendTextInternal(textBox, text);
+                            }
+                        }));
                     }
                     catch (Exception ex)
                     {
-                        Debug.WriteLine($"Invoke failed in LogViewManager.AppendText: {ex.Message}");
+                        Debug.WriteLine($"BeginInvoke failed in LogViewManager.AppendText: {ex.Message}");
                     }
                 }
                 else
@@ -97,20 +100,22 @@ namespace gostGUI
 
         private void AppendTextInternal(TextBox textBox, string text)
         {
-			int currentLineCount = textBox.Lines.Length;
-			if (currentLineCount > 500)
-			{
-				// 超过 500 行，清空全部内容
-				textBox.Text = string.Empty;
-			}
-			
+            if (textBox.IsDisposed || !textBox.IsHandleCreated) return;
+
+            int currentLineCount = SendMessage(textBox.Handle, EM_GETLINECOUNT, 0, 0);
+            if (currentLineCount > 500)
+            {
+                // 超过 500 行，清空全部内容
+                textBox.Text = string.Empty;
+            }
+
             textBox.AppendText(text);
             textBox.ScrollToCaret();
         }
 
-        public void ClearLog(string itemName)
+        public void ClearLog(ConfigItem item)
         {
-            if (_logTextBoxes.TryGetValue(itemName, out TextBox textBox))
+            if (item != null && _logTextBoxes.TryGetValue(item, out TextBox textBox))
             {
                 textBox.Clear();
             }

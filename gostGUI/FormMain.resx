@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <root>
   <!-- 
     Microsoft ResX Schema 
@@ -831,7 +831,7 @@
     <value>CenterScreen</value>
   </data>
   <data name="$this.Text" xml:space="preserve">
-    <value>gostGUI v1.6</value>
+    <value>gostGUI v1.8</value>
   </data>
   <data name="&gt;&gt;notifyIcon1.Name" xml:space="preserve">
     <value>notifyIcon1</value>

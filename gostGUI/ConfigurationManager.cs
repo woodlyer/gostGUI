@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -13,9 +13,9 @@ namespace gostGUI
 
         public IReadOnlyList<ConfigItem> Items => _configData.Items.AsReadOnly();
 
-        public event Action<string> ItemAdded;
-        public event Action<string, string> ItemRenamed;
-        public event Action<string> ItemDeleted;
+        public event Action<ConfigItem> ItemAdded;
+        public event Action<ConfigItem, string> ItemRenamed;
+        public event Action<ConfigItem> ItemDeleted;
         public event Action<ConfigItem> ItemUpdated;
 
         public ConfigurationManager()
@@ -29,17 +29,12 @@ namespace gostGUI
             Common.LoadJson(_configFilePath, out _configData);
         }
 
-        private void Save()
+        public void Save()
         {
             Common.SaveToFile(_configData, _configFilePath);
         }
 
-        public ConfigItem GetItem(string itemName)
-        {
-            return _configData.Items.FirstOrDefault(item => item.Name == itemName);
-        }
-
-        public string AddNewItem()
+        public ConfigItem AddNewItem()
         {
             string baseName = "new item";
             string newItemName = baseName;
@@ -59,44 +54,44 @@ namespace gostGUI
 
             _configData.Items.Add(newItem);
             Save();
-            ItemAdded?.Invoke(newItemName);
-            return newItemName;
+            ItemAdded?.Invoke(newItem);
+            return newItem;
         }
 
-        public void DeleteItem(string itemName)
+        public void DeleteItem(ConfigItem item)
         {
-            _configData.Items.RemoveAll(item => item.Name == itemName);
+            if (item == null) return;
+            _configData.Items.Remove(item);
             Save();
-            ItemDeleted?.Invoke(itemName);
+            ItemDeleted?.Invoke(item);
         }
 
-        public bool RenameItem(string oldName, string newName)
+        public bool RenameItem(ConfigItem item, string newName)
         {
-            if (string.IsNullOrEmpty(newName) || oldName == newName)
+            if (item == null || string.IsNullOrEmpty(newName))
             {
                 return false;
             }
 
-            if (_configData.Items.Exists(item => item.Name == newName))
+            if (item.Name == newName)
+            {
+                return false;
+            }
+
+            if (_configData.Items.Exists(i => !ReferenceEquals(i, item) && i.Name == newName))
             {
                 System.Windows.Forms.MessageBox.Show("An item with this name already exists.", "Error", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
                 return false;
             }
 
-            ConfigItem itemToRename = GetItem(oldName);
-            if (itemToRename != null)
-            {
-                itemToRename.Name = newName;
-                Save();
-                ItemRenamed?.Invoke(oldName, newName);
-                return true;
-            }
-            return false;
+            item.Name = newName;
+            Save();
+            ItemRenamed?.Invoke(item, newName);
+            return true;
         }
 
-        public void UpdateItemProgram(string itemName, string programPath)
+        public void UpdateItemProgram(ConfigItem item, string programPath)
         {
-            ConfigItem item = GetItem(itemName);
             if (item != null && item.Program != programPath)
             {
                 item.Program = programPath;
@@ -105,15 +100,10 @@ namespace gostGUI
             }
         }
 
-        public void UpdateItem(ConfigItem updatedItem)
+        public void UpdateItem(ConfigItem item)
         {
-            ConfigItem item = GetItem(updatedItem.Name);
             if (item != null)
             {
-                // This could be more granular if needed
-                item.Args = updatedItem.Args;
-                item.Enable = updatedItem.Enable;
-                item.Program = updatedItem.Program;
                 Save();
                 ItemUpdated?.Invoke(item);
             }

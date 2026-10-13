@@ -64,7 +64,7 @@ namespace gostGUI
                 foreach (var item in _configManager.Items)
                 { 
                     // Let the managers handle UI creation
-                    OnConfigItemAdded(item.Name);
+                    OnConfigItemAdded(item);
                 }
 
                 // Select the first item by default
@@ -82,120 +82,103 @@ namespace gostGUI
             _processManager?.Dispose();
         }
 
-        private string getCurrentItem()
+        private ConfigItem GetCurrentConfigItem()
         {
-            string selectedItemName = listBox1.SelectedItem?.ToString();
-            if (string.IsNullOrEmpty(selectedItemName))
-            {
-                //MessageBox.Show("Please select an item from the list.");
-                return "";
-            }
-
-            // Find the selected item in the config data
-            ConfigItem selectedConfigItem = _configManager.GetItem(selectedItemName);
-            if (selectedConfigItem == null)
-            {
-                MessageBox.Show("Selected item not found in the configuration.");
-                return "";
-            }
-            return selectedItemName;
+            return listBox1.SelectedItem as ConfigItem;
         }
 
-        void start(string selectedItemName)
+        void start(ConfigItem item)
         {
-            ConfigItem configItem = _configManager.GetItem(selectedItemName);
-            _processManager?.StartProcess(configItem);
+            if (item != null)
+            {
+                _processManager?.StartProcess(item);
+            }
         }
 
         void stop()
         {
-            string selectedItemName = getCurrentItem();
-            if (string.IsNullOrEmpty(selectedItemName)) return;
-            _processManager?.StopProcess(selectedItemName);
+            ConfigItem item = GetCurrentConfigItem();
+            if (item != null)
+            {
+                _processManager?.StopProcess(item);
+            }
         }
 
-        void stop(string itemName)
+        void stop(ConfigItem item)
         {
-            _processManager?.StopProcess(itemName);
+            if (item != null)
+            {
+                _processManager?.StopProcess(item);
+            }
         }
 
         private bool _isExiting = false;
 
         // 进程结束的事件响应函数
-        private void OnProcessExited(string itemName, int exitCode)
+        private void OnProcessExited(ConfigItem item, int exitCode)
         {
-            if (!_isExiting)
+            if (!_isExiting && item != null)
             {
-                ConfigItem configItem = _configManager.GetItem(itemName);
-                if (configItem != null)
-                {
-                    configItem.Enable = false;
-                    _configManager.UpdateItem(configItem);
-                }
+                item.Enable = false;
+                _configManager.UpdateItem(item);
             }
 
             string exitMessage = $"!!! program exited with code {exitCode} !!!";
-            
-            System.Threading.Thread.Sleep(50);// ms
-            update(exitMessage + Environment.NewLine, itemName);
-            updateStatus(itemName); 
+            update(exitMessage + Environment.NewLine, item);
+            updateStatus(item); 
         }
 
-        private void OnProcessStarted(string itemName)
+        private void OnProcessStarted(ConfigItem item)
         {
-            ConfigItem configItem = _configManager.GetItem(itemName);
-            if (configItem != null)
+            if (item != null)
             {
-                configItem.Enable = true;
-                _configManager.UpdateItem(configItem);
+                item.Enable = true;
+                _configManager.UpdateItem(item);
             }
-            outputAdd("run success.", itemName);
-            outputAdd("---------------------------------------------------------", itemName);
-            updateStatus(itemName);
+            outputAdd("run success.", item);
+            outputAdd("---------------------------------------------------------", item);
+            updateStatus(item);
         }
-        private void OnProcessStopped(string itemName)
+        private void OnProcessStopped(ConfigItem item)
         {
-            if (!_isExiting)
+            if (!_isExiting && item != null)
             {
-                ConfigItem configItem = _configManager.GetItem(itemName);
-                if (configItem != null)
-                {
-                    configItem.Enable = false;
-                    _configManager.UpdateItem(configItem);
-                }
+                item.Enable = false;
+                _configManager.UpdateItem(item);
             }
-            outputAdd("!!! stop program !!!", itemName);
-            updateStatus(itemName);
+            outputAdd("!!! stop program !!!", item);
+            updateStatus(item);
         }
         // 刷新界面的显示
-        void updateStatus(string itemName)
+        void updateStatus(ConfigItem item)
         {
+            if (this.IsDisposed || !this.IsHandleCreated) return;
+
             if (this.InvokeRequired)
             {
                 try
                 {
-                    Invoke(new Action(() => updateStatus(itemName)));
+                    BeginInvoke(new Action(() => updateStatus(item)));
                 }
                 catch (Exception ex)
                 {
-                    Debug.WriteLine($"Invoke failed in updateStatus: {ex.Message}");
+                    Debug.WriteLine($"BeginInvoke failed in updateStatus: {ex.Message}");
                 }
             }
             else
             {
-                
                 listBox1.Invalidate(); // Redraw listbox to update status for all items
             }
         }
 
-        void OnProcessOutputReceived(string itemName, string data)
+        void OnProcessOutputReceived(ConfigItem item, string data)
         {
-            update(data, itemName);
+            update(data, item);
         }
 
-        void update(string msg, string itemName)
+        void update(string msg, ConfigItem item)
         {
-            _logViewManager.AppendText(itemName, msg);
+            _logViewManager.AppendText(item, msg);
         }
 
         
@@ -203,20 +186,23 @@ namespace gostGUI
         // start
         private void buttonStart_Click(object sender, EventArgs e)
         {
-            string selectedItemName = getCurrentItem();
-            if (!string.IsNullOrEmpty(selectedItemName))
+            ConfigItem item = GetCurrentConfigItem();
+            if (item != null)
             {
-                start(selectedItemName);
+                start(item);
             }
         }
         private void outputAdd(string str)
         {
-            string itemName = getCurrentItem();
-            outputAdd(str,itemName);
+            ConfigItem item = GetCurrentConfigItem();
+            if (item != null)
+            {
+                outputAdd(str, item);
+            }
         }
-        private void outputAdd(string str, string itemName)
+        private void outputAdd(string str, ConfigItem item)
         {
-            _logViewManager.AppendText(itemName, str + Environment.NewLine);
+            _logViewManager.AppendText(item, str + Environment.NewLine);
         }
 
         private void FormMain_FormClosed(object sender, FormClosedEventArgs e)
@@ -239,9 +225,14 @@ namespace gostGUI
         private static extern bool SetForegroundWindow(IntPtr hWnd);
 
         [System.Runtime.InteropServices.DllImport("user32.dll")]
-        private static extern bool ShowWindowAsync(IntPtr hWnd, int nCmdShow);
+        private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, int dwExtraInfo);
 
         private const int SW_RESTORE = 9;
+        private const byte VK_MENU = 0x12; // Alt key
+        private const uint KEYEVENTF_KEYUP = 0x0002;
 
         private void RestoreAndBringToFront()
         {
@@ -257,9 +248,17 @@ namespace gostGUI
                 this.WindowState = FormWindowState.Normal;
             }
 
-            ShowWindowAsync(this.Handle, SW_RESTORE);
-            this.Activate();
+            ShowWindow(this.Handle, SW_RESTORE);
+
+            // 当窗口未最小化但被其他窗口遮挡时，通过 TopMost 快速置顶并恢复，确保冲破遮挡
+            this.TopMost = true;
             this.BringToFront();
+            this.Activate();
+            this.TopMost = false;
+
+            // 模拟一次 Alt 击键以安全获取 SetForegroundWindow 前台切换权限（彻底消除 AttachThreadInput 跨线程死锁隐患）
+            keybd_event(VK_MENU, 0, 0, 0);
+            keybd_event(VK_MENU, 0, KEYEVENTF_KEYUP, 0);
             SetForegroundWindow(this.Handle);
         }
 
@@ -270,8 +269,7 @@ namespace gostGUI
                 //this.ShowInTaskbar = false;
                 contextMenuStrip1.Show(Control.MousePosition);
             }
-
-            if (e.Button == MouseButtons.Left)
+            else if (e.Button == MouseButtons.Left)
             {
                 RestoreAndBringToFront();
             }
@@ -286,11 +284,7 @@ namespace gostGUI
         //stop 
         private void buttonStop_Click(object sender, EventArgs e)
         {
-            string selectedItemName = getCurrentItem();
-            if (!string.IsNullOrEmpty(selectedItemName))
-            {
-                stop(selectedItemName);
-            }
+            stop();
         }
 
         //拖入应用
@@ -316,16 +310,12 @@ namespace gostGUI
 
         private void update_textBox1(string path)
         {
-            string selectedItemName = listBox1.SelectedItem?.ToString();
-            if (!string.IsNullOrEmpty(selectedItemName))
+            ConfigItem selectedConfigItem = GetCurrentConfigItem();
+            if (selectedConfigItem != null)
             {
-                ConfigItem selectedConfigItem = _configManager.GetItem(selectedItemName);
-                if (selectedConfigItem != null)
+                if (selectedConfigItem.Program != path) // Only update if changed
                 {
-                    if (selectedConfigItem.Program != path) // Only update if changed
-                    {
-                        _configManager.UpdateItemProgram(selectedItemName, path);
-                    }
+                    _configManager.UpdateItemProgram(selectedConfigItem, path);
                 }
             }
             else
@@ -356,10 +346,10 @@ namespace gostGUI
 
         private void clearButton_Click(object sender, EventArgs e)
         {
-            string selectedItemName = getCurrentItem();
-            if (!string.IsNullOrEmpty(selectedItemName))
+            ConfigItem item = GetCurrentConfigItem();
+            if (item != null)
             {
-                _logViewManager.ClearLog(selectedItemName);
+                _logViewManager.ClearLog(item);
             }
         }
 
@@ -384,31 +374,25 @@ namespace gostGUI
 
         private void listbox_txtBox_KeyDown(object sender, KeyEventArgs e)
         {
-            //Enter键 更新项并隐藏编辑框   
+            // Enter key commits edit
             if (e.KeyCode == Keys.Enter)
             {
-                string oldName = listBox1.Items[listBox1.SelectedIndex].ToString();
-                string newName = listbox_txtBox.Text.Trim();
-
-                if (string.IsNullOrEmpty(newName) || newName == oldName)
-                {
-                    listbox_txtBox.Visible = false;
-                    return;
-                }
-
-                if (_configManager.RenameItem(oldName, newName))
-                {
-                    listbox_txtBox.Visible = false;
-                }
+                e.Handled = true;
+                e.SuppressKeyPress = true;
+                EndListBoxEdit(true);
             }
-            //Esc键 直接隐藏编辑框   
-            if (e.KeyCode == Keys.Escape)
-                listbox_txtBox.Visible = false;
+            // Esc key cancels edit
+            else if (e.KeyCode == Keys.Escape)
+            {
+                e.Handled = true;
+                e.SuppressKeyPress = true;
+                EndListBoxEdit(false);
+            }
         }
 
         private void listBox1_DrawItem(object sender, DrawItemEventArgs e)
         {
-            if (e.Index < 0)
+            if (e.Index < 0 || e.Index >= listBox1.Items.Count)
             {
                 return;
             }
@@ -417,10 +401,13 @@ namespace gostGUI
 
             e.DrawBackground();
 
-            string itemName = listBox1.Items[e.Index].ToString();
+            ConfigItem configItem = listBox1.Items[e.Index] as ConfigItem;
+            if (configItem == null) return;
+
+            string itemName = configItem.Name;
 
             // Check if the process for this item is running
-            bool isRunning = _processManager.IsProcessRunning(itemName);
+            bool isRunning = _processManager.IsProcessRunning(configItem);
 
             // Determine the color for the icon based on the selection state
             Color iconColor;
@@ -467,13 +454,16 @@ namespace gostGUI
         private void listBox1_DoubleClick(object sender, EventArgs e)
         {
             int index = listBox1.SelectedIndex;
-            if (index != ListBox.NoMatches)
+            if (index != ListBox.NoMatches && index >= 0 && index < listBox1.Items.Count)
             {
-                string itemName = listBox1.Items[index].ToString();
-                bool isRunning = _processManager.IsProcessRunning(itemName);
+                ConfigItem item = listBox1.Items[index] as ConfigItem;
+                if (item != null)
+                {
+                    bool isRunning = _processManager.IsProcessRunning(item);
 
-                // Toggle start/stop
-                if (isRunning) stop(itemName); else start(itemName);
+                    // Toggle start/stop
+                    if (isRunning) stop(item); else start(item);
+                }
             }
         }
 
@@ -485,7 +475,7 @@ namespace gostGUI
             }
 
             int index = listBox1.IndexFromPoint(e.Location);
-            if (index != ListBox.NoMatches)
+            if (index != ListBox.NoMatches && index >= 0 && index < listBox1.Items.Count)
             {
                 Rectangle itemBounds = listBox1.GetItemRectangle(index);
                 
@@ -497,11 +487,14 @@ namespace gostGUI
                 // Check if the click was inside the icon's bounds
                 if (iconRect.Contains(e.Location))
                 {
-                    string itemName = listBox1.Items[index].ToString();
-                    bool isRunning = _processManager.IsProcessRunning(itemName);
+                    ConfigItem item = listBox1.Items[index] as ConfigItem;
+                    if (item != null)
+                    {
+                        bool isRunning = _processManager.IsProcessRunning(item);
 
-                    // Toggle start/stop
-                    if (isRunning) stop(itemName); else start(itemName);
+                        // Toggle start/stop
+                        if (isRunning) stop(item); else start(item);
+                    }
                 }
             }
         }
@@ -528,35 +521,36 @@ namespace gostGUI
             // Commit changes when the textbox loses focus.
             EndListBoxEdit(true);
         }
-        private string _currentEditingItemName = null;
+        private ConfigItem _currentEditingItem = null;
 
         private void EndListBoxEdit(bool commitChanges)
         {
             // If the textbox is not visible, there is nothing to do.
             if (!listbox_txtBox.Visible)
             {
-                _currentEditingItemName = null;
+                _currentEditingItem = null;
                 return;
             }
 
-            if (commitChanges && !string.IsNullOrEmpty(_currentEditingItemName))
+            if (commitChanges && _currentEditingItem != null)
             {
-                string oldName = _currentEditingItemName;
+                string oldName = _currentEditingItem.Name ?? "";
                 string newName = listbox_txtBox.Text.Trim();
 
                 // If name is unchanged or empty, just hide the textbox.
                 if (string.IsNullOrEmpty(newName) || newName == oldName)
                 {
-                    _currentEditingItemName = null;
+                    _currentEditingItem = null;
                     listbox_txtBox.Visible = false;
                     return;
                 }
 
                 // Check for duplicates
-                if (_configManager.RenameItem(oldName, newName))
+                if (_configManager.RenameItem(_currentEditingItem, newName))
                 {
-                    _currentEditingItemName = null;
+                    _currentEditingItem = null;
                     listbox_txtBox.Visible = false; // Success, hide the box
+                    listBox1.Invalidate();
                     return;
                 }
                 else
@@ -566,7 +560,7 @@ namespace gostGUI
                 }
             }
 
-            _currentEditingItemName = null;
+            _currentEditingItem = null;
             listbox_txtBox.Visible = false;
         }
         private void editToolStripMenuItem_Click(object sender, EventArgs e)
@@ -576,11 +570,9 @@ namespace gostGUI
             {
                 return;
             }
-            string itemText = listBox1.Items[itemSelected].ToString();
-
-            if (_processManager.IsProcessRunning(itemText))
+            ConfigItem item = listBox1.Items[itemSelected] as ConfigItem;
+            if (item == null)
             {
-                MessageBox.Show("Please stop the process before renaming it.", "Information", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
 
@@ -589,8 +581,8 @@ namespace gostGUI
             listbox_txtBox.Bounds = rect;
 
             listbox_txtBox.Multiline = false; // A single line is enough for the name
-            _currentEditingItemName = itemText;
-            listbox_txtBox.Text = itemText;
+            _currentEditingItem = item;
+            listbox_txtBox.Text = item.Name;
             listbox_txtBox.Visible = true;
             listbox_txtBox.Focus();
             listbox_txtBox.SelectAll();
@@ -598,44 +590,34 @@ namespace gostGUI
         private void newToolStripMenuItem_Click(object sender, EventArgs e)
         {
             EndListBoxEdit(false);
-            string newItemName = _configManager.AddNewItem();
-            listBox1.SelectedItem = newItemName; // Select the new item
+            ConfigItem newItem = _configManager.AddNewItem();
+            listBox1.SelectedItem = newItem; // Select the new item
         }
 
         private void deleteToolStripMenuItem_Click(object sender, EventArgs e)
         {
             EndListBoxEdit(false);
             int itemSelected = listBox1.SelectedIndex;
-            if (itemSelected < 0) return;
+            if (itemSelected < 0 || itemSelected >= listBox1.Items.Count) return;
 
-            string itemText = listBox1.Items[itemSelected].ToString();
-            stop(itemText); // Stop the process if it's running
-            _configManager.DeleteItem(itemText);
+            ConfigItem item = listBox1.Items[itemSelected] as ConfigItem;
+            if (item == null) return;
+
+            stop(item); // Stop the process if it's running
+            _configManager.DeleteItem(item);
         }
 
         private void listBox1_SelectedIndexChanged(object sender, EventArgs e)
         {
-            if (listBox1.SelectedItem != null)
+            ConfigItem selectedConfigItem = GetCurrentConfigItem();
+            if (selectedConfigItem != null)
             {
-                string selectedItemName = listBox1.SelectedItem.ToString();
+                // Update the textboxes with the selected item's data
+                textBox1.Text = selectedConfigItem.Program ?? "";
+                textBox_Arg.Text = selectedConfigItem.Args ?? "";
 
-                // Find the selected item in the config data
-                ConfigItem selectedConfigItem = _configManager.GetItem(selectedItemName);
-
-                if (selectedConfigItem != null)
-                {
-                    // Update the textboxes with the selected item's data
-                    textBox1.Text = selectedConfigItem.Program ?? "";
-                    textBox_Arg.Text = selectedConfigItem.Args ?? "";
-
-                    // Show the selected textBox_log and hide others
-                    _logViewManager.ShowLogView(selectedItemName);
-                }
-                else
-                {
-                    textBox1.Text = "";
-                    textBox_Arg.Text = "";
-                }
+                // Show the selected textBox_log and hide others
+                _logViewManager.ShowLogView(selectedConfigItem);
             }
             else
             {
@@ -651,15 +633,11 @@ namespace gostGUI
 
         private void textBox_Arg_Leave(object sender, EventArgs e)
         {
-            if (listBox1.SelectedItem != null)
+            ConfigItem selectedConfigItem = GetCurrentConfigItem();
+            if (selectedConfigItem != null && selectedConfigItem.Args != textBox_Arg.Text)
             {
-                string selectedItemName = listBox1.SelectedItem.ToString();
-                ConfigItem selectedConfigItem = _configManager.GetItem(selectedItemName);
-                if (selectedConfigItem != null && selectedConfigItem.Args != textBox_Arg.Text)
-                {
-                    selectedConfigItem.Args = textBox_Arg.Text; 
-                    _configManager.UpdateItem(selectedConfigItem);
-                }
+                selectedConfigItem.Args = textBox_Arg.Text; 
+                _configManager.UpdateItem(selectedConfigItem);
             }
         }
 
@@ -681,52 +659,50 @@ namespace gostGUI
 
             if (hasSelection)
             {
-                string selectedItemName = listBox1.SelectedItem.ToString();
-                bool isRunning = _processManager.IsProcessRunning(selectedItemName);
-                startToolStripMenuItem_listbox.Enabled = !isRunning;
-                stopToolStripMenuItem_listbox.Enabled = isRunning;
+                ConfigItem item = GetCurrentConfigItem();
+                if (item != null)
+                {
+                    bool isRunning = _processManager.IsProcessRunning(item);
+                    startToolStripMenuItem_listbox.Enabled = !isRunning;
+                    stopToolStripMenuItem_listbox.Enabled = isRunning;
+                }
             }
         }
 
         private void startToolStripMenuItem_listbox_Click(object sender, EventArgs e)
         {
-            if (listBox1.SelectedItem != null)
+            ConfigItem item = GetCurrentConfigItem();
+            if (item != null)
             {
-                start(listBox1.SelectedItem.ToString());
+                start(item);
             }
         }
 
         private void stopToolStripMenuItem_listbox_Click(object sender, EventArgs e)
         {
-            if (listBox1.SelectedItem != null)
+            ConfigItem item = GetCurrentConfigItem();
+            if (item != null)
             {
-                stop(listBox1.SelectedItem.ToString());
+                stop(item);
             }
         }
         #region ConfigurationManager Event Handlers
 
-        private void OnConfigItemAdded(string itemName)
+        private void OnConfigItemAdded(ConfigItem item)
         {
-            _logViewManager.AddLogView(itemName);
-            listBox1.Items.Add(itemName);
+            _logViewManager.AddLogView(item);
+            listBox1.Items.Add(item);
         }
 
-        private void OnConfigItemRenamed(string oldName, string newName)
+        private void OnConfigItemRenamed(ConfigItem item, string newName)
         {
-            _logViewManager.RenameLogView(oldName, newName);
-
-            int index = listBox1.Items.IndexOf(oldName);
-            if (index != -1)
-            {
-                listBox1.Items[index] = newName;
-                listBox1.SelectedIndex = index;
-            }
+            listBox1.Invalidate();
         }
 
-        private void OnConfigItemDeleted(string itemName)
+        private void OnConfigItemDeleted(ConfigItem item)
         {
-            _logViewManager.RemoveLogView(itemName);
-            listBox1.Items.Remove(itemName);
+            _logViewManager.RemoveLogView(item);
+            listBox1.Items.Remove(item);
 
             if (listBox1.Items.Count > 0)
             {
@@ -766,9 +742,9 @@ namespace gostGUI
                     }
                 }
 
-                if (item.Enable && !_processManager.IsProcessRunning(item.Name))
+                if (item.Enable && !_processManager.IsProcessRunning(item))
                 {
-                    start(item.Name);
+                    start(item);
                 }
             }
         }

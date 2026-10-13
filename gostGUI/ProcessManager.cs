@@ -1,4 +1,4 @@
-﻿﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -7,13 +7,14 @@ namespace gostGUI
 {
     public class ProcessManager : IDisposable
     {
-        private readonly Dictionary<string, Process> _processes = new Dictionary<string, Process>();
+        private readonly Dictionary<ConfigItem, Process> _processes = new Dictionary<ConfigItem, Process>();
+        private readonly object _lock = new object();
         private readonly JobObjectManager _jobManager;
 
-        public event Action<string, string> OutputReceived;
-        public event Action<string, int> ProcessExited;
-        public event Action<string> ProcessStarted;
-        public event Action<string> ProcessStopped;
+        public event Action<ConfigItem, string> OutputReceived;
+        public event Action<ConfigItem, int> ProcessExited;
+        public event Action<ConfigItem> ProcessStarted;
+        public event Action<ConfigItem> ProcessStopped;
 
         public ProcessManager()
         {
@@ -28,9 +29,24 @@ namespace gostGUI
             }
         }
 
-        public bool IsProcessRunning(string itemName)
+        public bool IsProcessRunning(ConfigItem item)
         {
-            return _processes.ContainsKey(itemName) && !_processes[itemName].HasExited;
+            if (item == null) return false;
+            lock (_lock)
+            {
+                if (_processes.TryGetValue(item, out Process p) && p != null)
+                {
+                    try
+                    {
+                        return !p.HasExited;
+                    }
+                    catch
+                    {
+                        return false;
+                    }
+                }
+                return false;
+            }
         }
 
         public bool StartProcess(ConfigItem configItem)
@@ -40,17 +56,18 @@ namespace gostGUI
                 return false;
             }
 
-            string itemName = configItem.Name;
-
-            if (IsProcessRunning(itemName))
+            lock (_lock)
             {
-                // Already running, no action needed.
-                return true;
+                if (IsProcessRunning(configItem))
+                {
+                    // Already running, no action needed.
+                    return true;
+                }
             }
 
             if (!File.Exists(configItem.Program))
             {
-                OutputReceived?.Invoke(itemName, $"!!! Program file does not exist: {configItem.Program} !!!");
+                OutputReceived?.Invoke(configItem, $"!!! Program file does not exist: {configItem.Program} !!!");
                 return false;
             }
 
@@ -71,13 +88,25 @@ namespace gostGUI
                 EnableRaisingEvents = true
             };
 
-            p.OutputDataReceived += (sender, e) => { if (e.Data != null) OutputReceived?.Invoke(itemName, e.Data + Environment.NewLine); };
-            p.ErrorDataReceived += (sender, e) => { if (e.Data != null) OutputReceived?.Invoke(itemName, e.Data + Environment.NewLine); };
+            p.OutputDataReceived += (sender, e) => { if (e.Data != null) OutputReceived?.Invoke(configItem, e.Data + Environment.NewLine); };
+            p.ErrorDataReceived += (sender, e) => { if (e.Data != null) OutputReceived?.Invoke(configItem, e.Data + Environment.NewLine); };
             p.Exited += (sender, e) =>
             {
-                Process exitedProcess = sender as Process;
-                _processes.Remove(itemName);
-                ProcessExited?.Invoke(itemName, exitedProcess.ExitCode);
+                int exitCode = -1;
+                try
+                {
+                    if (sender is Process proc)
+                    {
+                        exitCode = proc.ExitCode;
+                    }
+                }
+                catch { }
+
+                lock (_lock)
+                {
+                    _processes.Remove(configItem);
+                }
+                ProcessExited?.Invoke(configItem, exitCode);
             };
 
             try
@@ -85,50 +114,73 @@ namespace gostGUI
                 if (p.Start())
                 {
                     _jobManager.AddProcess(p);
-                    _processes[itemName] = p;
+                    lock (_lock)
+                    {
+                        _processes[configItem] = p;
+                    }
                     p.BeginOutputReadLine();
                     p.BeginErrorReadLine();
-                    ProcessStarted?.Invoke(itemName);
+                    ProcessStarted?.Invoke(configItem);
                     return true;
                 }
             }
             catch (Exception ex)
             {
-                OutputReceived?.Invoke(itemName, $"!!! Failed to start process: {ex.Message} !!!");
+                OutputReceived?.Invoke(configItem, $"!!! Failed to start process: {ex.Message} !!!");
             }
 
             return false;
         }
 
-        public void StopProcess(string itemName)
+        public void StopProcess(ConfigItem configItem)
         {
-            if (_processes.TryGetValue(itemName, out Process p) && p != null && !p.HasExited)
+            if (configItem == null) return;
+            Process p = null;
+            lock (_lock)
+            {
+                if (_processes.TryGetValue(configItem, out p))
+                {
+                    _processes.Remove(configItem);
+                }
+            }
+
+            if (p != null)
             {
                 try
                 {
-                    p.Kill();
+                    if (!p.HasExited)
+                    {
+                        p.Kill();
+                    }
                 }
                 catch (Exception ex)
                 {
-                    OutputReceived?.Invoke(itemName, $"!!! Failed to stop process: {ex.Message} !!!");
+                    OutputReceived?.Invoke(configItem, $"!!! Failed to stop process: {ex.Message} !!!");
                 }
                 finally
                 {
-                    p.Close();
-                    p.Dispose();
-                    _processes.Remove(itemName);
-                    ProcessStopped?.Invoke(itemName);
+                    try
+                    {
+                        p.Dispose();
+                    }
+                    catch { }
+                    ProcessStopped?.Invoke(configItem);
                 }
             }
         }
 
         public void StopAllProcesses()
         {
-            // Create a copy of keys to avoid modification during iteration
-            List<string> runningItems = new List<string>(_processes.Keys);
-            foreach (string itemName in runningItems)
+            List<ConfigItem> runningItems;
+            lock (_lock)
             {
-                StopProcess(itemName);
+                // Create a copy of keys to avoid modification during iteration
+                runningItems = new List<ConfigItem>(_processes.Keys);
+            }
+
+            foreach (ConfigItem item in runningItems)
+            {
+                StopProcess(item);
             }
         }
 
