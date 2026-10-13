@@ -13,6 +13,19 @@ namespace gostGUI
 
         public IReadOnlyList<ConfigItem> Items => _configData.Items.AsReadOnly();
 
+        public bool AutoRun
+        {
+            get => _configData?.AutoRun ?? false;
+            set
+            {
+                if (_configData != null && _configData.AutoRun != value)
+                {
+                    _configData.AutoRun = value;
+                    Save();
+                }
+            }
+        }
+
         public event Action<ConfigItem> ItemAdded;
         public event Action<ConfigItem, string> ItemRenamed;
         public event Action<ConfigItem> ItemDeleted;

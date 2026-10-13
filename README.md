@@ -53,6 +53,7 @@ Just  run silently in the background.
     - 日志行数检测改用原生 Win32 `EM_GETLINECOUNT` 消息，消除原 `TextBox.Lines.Length` 频繁分配大数组导致的严重界面卡顿。
     - `ProcessManager` 内部多进程集合全面增加线程同步锁，避免并发修改导致 `Dictionary` 损坏或死循环卡死。
     - 增加 `config.json` 写入线程锁，避免并发保存产生文件读写冲突。
+  - 修复 `AutoRun` 复选框功能：点击界面上的 `AutoRun` 即可实时更新并保存 `config.json` 中的 `"autoRun"` 配置项；启动 gostGUI 时根据该配置决定是否自动运行已启用的程序，移除原先混淆的注册表弹窗代码。
   - 程序主窗口标题更新为 `gostGUI v1.8`，程序集与文件版本升级至 `1.8`。
 - **v1.6**: Click listbox to start/stop program.
 - **v1.5**: Implemented robust multi-process management and automatic child-process cleanup on exit. Revamped UI with custom-drawn status icons and improved in-place editing. (Thanks to Gemini Code Assist).

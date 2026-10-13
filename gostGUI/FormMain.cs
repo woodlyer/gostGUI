@@ -13,9 +13,6 @@ namespace gostGUI
         private ConfigurationManager _configManager;
         private LogViewManager _logViewManager;
 
-        private const string AppRegistryKey = "gostGUI";
-        private const string RunRegistryPath = "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run";
-
         // for listbox edit
         TextBox listbox_txtBox = new TextBox();
 
@@ -53,8 +50,11 @@ namespace gostGUI
             this.listBox1.MouseDown += new System.Windows.Forms.MouseEventHandler(this.listBox1_MouseDown);
             listbox_txtBox.Leave += new System.EventHandler(this.listbox_txtBox_Leave);
             listbox_txtBox.KeyDown += new KeyEventHandler(listbox_txtBox_KeyDown);
-            checkAutoStartStatus();
-            startAll();
+            checkBox1_autostart.Checked = _configManager.AutoRun;
+            if (_configManager.AutoRun)
+            {
+                startAll();
+            }
         }
         void initFromConfig()
         {
@@ -771,50 +771,9 @@ namespace gostGUI
             stopAll();
         }
 
-        private void checkAutoStartStatus()
-        {
-            RegistryKey rkApp = Registry.CurrentUser.OpenSubKey(RunRegistryPath, false);
-
-            Object obj = rkApp?.GetValue(AppRegistryKey);
-            if (obj == null)
-                return;
-
-            String value = obj.ToString();
-            if (value == null)
-            {
-                checkBox1_autostart.Checked = false;
-                return;
-            }
-
-            if (value == Application.ExecutablePath.ToString())
-            {
-                checkBox1_autostart.Checked = true;
-            }
-            rkApp.Close();
-        }
-  
         private void checkBox1_autostart_Click(object sender, EventArgs e)
         {
-            try
-            {
-                using (RegistryKey rkApp = Registry.CurrentUser.OpenSubKey(RunRegistryPath, true))
-                {
-                    if (checkBox1_autostart.Checked)
-                    {
-                        rkApp.SetValue(AppRegistryKey, Application.ExecutablePath);
-                        MessageBox.Show("Auto-start enabled successfully.", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                    }
-                    else
-                    {
-                        rkApp.DeleteValue(AppRegistryKey, false);
-                        MessageBox.Show("Auto-start disabled.", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("Failed to update auto-start setting: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
+            _configManager.AutoRun = checkBox1_autostart.Checked;
         }
     }
 }

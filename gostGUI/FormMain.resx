@@ -494,7 +494,7 @@
     <value>4</value>
   </data>
   <data name="checkBox1_autostart.AccessibleDescription" xml:space="preserve">
-    <value>是否开机自动启动</value>
+    <value>启动gostGUI后是否自动运行程序</value>
   </data>
   <data name="checkBox1_autostart.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
